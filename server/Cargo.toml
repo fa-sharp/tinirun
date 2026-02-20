@@ -1,0 +1,36 @@
+[package]
+name = "tinirun-server"
+version = "0.1.0"
+edition = "2024"
+description = ""
+
+[dependencies]
+aide = { version = "0.16.0-alpha.2", features = [
+  "axum",
+  "axum-json",
+  "axum-query",
+  "swagger"
+] }
+anyhow = "1.0.102"
+axum = { version = "0.8.8", features = ["json", "query"] }
+axum-app-wrapper = { git = "https://gitea.fasharp.io/fa-sharp/axum-app-wrapper", rev = "a8d5e4f962" }
+dotenvy = "0.15.7"
+figment = { version = "0.10.19", features = ["env"] }
+schemars = { version = "1.2", features = [
+  "chrono04",
+  "preserve_order",
+  "url2",
+  "uuid1"
+] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", default-features = false, features = [
+  "macros",
+  "net",
+  "rt",
+  "rt-multi-thread",
+  "signal"
+] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
+type-map = "0.5.1"
