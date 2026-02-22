@@ -1,8 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 /// Options for the code runner
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Validate)]
 pub struct CodeRunnerInput {
     /// The code to run
     pub code: String,
@@ -11,8 +12,10 @@ pub struct CodeRunnerInput {
     /// Dependencies for the code execution
     pub dependencies: Option<Vec<String>>,
     /// Timeout for the code execution in seconds
+    #[validate(range(min = 5, max = 300))]
     pub timeout: Option<u32>,
     /// Memory limit for the code execution in megabytes
+    #[validate(range(min = 1, max = 2048))]
     pub mem_limit_mb: Option<u32>,
 }
 

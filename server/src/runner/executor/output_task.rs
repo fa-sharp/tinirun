@@ -6,6 +6,10 @@ use tokio::sync::mpsc;
 
 use crate::runner::structs::CodeRunnerChunk;
 
+/// Maximum number of bytes accumulated for stdout or stderr.
+/// Output beyond this limit is silently dropped to prevent memory exhaustion.
+const MAX_OUTPUT_BYTES: usize = 1024 * 1024; // 1 MB
+
 /// Attach to the Docker container and send stdout/stderr logs back to the client, while also
 /// returning the accumulated output at the end of execution.
 pub async fn attach_and_process_output(
@@ -21,12 +25,16 @@ pub async fn attach_and_process_output(
                 Ok(output) => match output {
                     LogOutput::StdOut { message } => {
                         let message_str = String::from_utf8_lossy(&message).into_owned();
-                        stdout.push_str(&format!("{message_str}\n"));
+                        if stdout.len() < MAX_OUTPUT_BYTES {
+                            stdout.push_str(&format!("{message_str}\n"));
+                        }
                         tx.send(CodeRunnerChunk::Stdout(message_str)).await.ok();
                     }
                     LogOutput::StdErr { message } => {
                         let message_str = String::from_utf8_lossy(&message).into_owned();
-                        stderr.push_str(&format!("{message_str}\n"));
+                        if stderr.len() < MAX_OUTPUT_BYTES {
+                            stderr.push_str(&format!("{message_str}\n"));
+                        }
                         tx.send(CodeRunnerChunk::Stderr(message_str)).await.ok();
                     }
                     _ => {}

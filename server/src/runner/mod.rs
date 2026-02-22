@@ -18,6 +18,7 @@ mod constants;
 mod executor;
 mod plugin;
 mod structs;
+mod validators;
 
 pub use plugin::plugin;
 pub use structs::{CodeLanguage, CodeRunnerInput};
@@ -53,6 +54,11 @@ impl DockerRunner {
         &self,
         input: CodeRunnerInput,
     ) -> anyhow::Result<impl Stream<Item = CodeRunnerChunk> + use<>> {
+        // Validate dependency names
+        if let Some(deps) = &input.dependencies {
+            validators::validate_deps_input(deps)?;
+        }
+
         // Render the Dockerfile
         let lang_data = self
             .language_data

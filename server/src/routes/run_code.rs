@@ -3,6 +3,7 @@ use axum::{
     extract::State,
     response::{Sse, sse::Event},
 };
+use axum_valid::Valid;
 use futures::{Stream, StreamExt};
 
 use crate::{runner::CodeRunnerInput, state::AppState};
@@ -13,7 +14,7 @@ pub fn route() -> axum::routing::MethodRouter<AppState> {
 
 async fn handler(
     State(state): State<AppState>,
-    Json(input): Json<CodeRunnerInput>,
+    Valid(Json(input)): Valid<Json<CodeRunnerInput>>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, axum::Error>>>, String> {
     let stream = state
         .runner
