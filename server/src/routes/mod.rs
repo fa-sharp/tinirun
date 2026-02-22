@@ -1,14 +1,18 @@
 use axum_app_wrapper::AdHocPlugin;
 
-use crate::state::AppState;
+use crate::{auth::ApiKey, state::AppState};
 
 pub mod run_code;
 
 /// Adds all API routes to the server under `/api`
 pub fn plugin() -> AdHocPlugin<AppState> {
-    AdHocPlugin::new().on_setup(|router, _state| {
+    AdHocPlugin::new().on_setup(|router, state| {
         // Build API routes
-        let api_router = aide::axum::ApiRouter::new().route("/code/run", run_code::route());
+        let api_router = aide::axum::ApiRouter::new()
+            .route("/code/run", run_code::route())
+            .layer(axum::middleware::from_extractor_with_state::<ApiKey, _>(
+                state.clone(),
+            ));
 
         // OpenAPI configuration
         let mut openapi = aide::openapi::OpenApi {

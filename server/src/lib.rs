@@ -2,6 +2,7 @@ use axum_app_wrapper::App;
 
 use crate::config::AppConfig;
 
+mod auth;
 mod config;
 mod routes;
 mod runner;
