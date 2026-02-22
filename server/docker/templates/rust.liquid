@@ -1,0 +1,17 @@
+FROM {{ image }}
+RUN apt-get update -qq && apt-get install -y -qq pkg-config libssl-dev ca-certificates && apt-get clean
+
+{{ set_user_and_home_dir }}
+
+RUN cargo init --name temp
+{% if dependencies %}
+RUN cargo add {{ dependencies }}
+{% endif %}
+
+RUN cargo build
+
+COPY --chown=1000:1000 {{ main_file }} src/
+RUN touch src/{{ main_file }}
+RUN cargo build
+
+CMD ["./target/debug/temp"]

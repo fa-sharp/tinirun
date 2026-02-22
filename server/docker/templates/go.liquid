@@ -1,0 +1,17 @@
+FROM {{ image }}
+
+ENV GOTMPDIR=/opt/gotmpdir GOCACHE=/opt/gocache
+RUN mkdir -p /opt/gotmpdir && chown 1000:1000 /opt/gotmpdir
+RUN mkdir -p /opt/gocache && chown 1000:1000 /opt/gocache
+
+{{ set_user_and_home_dir }}
+
+RUN go mod init temp
+{% if dependencies %}
+RUN go get {{ dependencies }}
+{% endif %}
+
+COPY {{ main_file }} .
+RUN go build
+
+CMD ["./temp"]

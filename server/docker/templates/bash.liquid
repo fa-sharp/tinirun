@@ -1,0 +1,11 @@
+FROM {{ image }}
+
+{% if dependencies %}
+RUN apk add --no-cache {{ dependencies }}
+{% endif %}
+
+{{ set_user_and_home_dir }}
+
+COPY {{ main_file }} .
+
+CMD ["bash", "{{  main_file }}"]

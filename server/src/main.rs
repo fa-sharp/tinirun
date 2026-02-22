@@ -1,8 +1,9 @@
 use std::{net::SocketAddr, str::FromStr};
 
-use tinirun_server::create_app;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+use tinirun_server::create_app;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -30,8 +31,6 @@ async fn main() -> anyhow::Result<()> {
             .with(tracing_subscriber::fmt::layer().json().flatten_event(true))
             .init();
     }
-
-    tracing::debug!("test");
 
     // Start listening for requests
     let addr = SocketAddr::new(config.host, config.port);

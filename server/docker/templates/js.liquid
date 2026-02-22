@@ -1,0 +1,18 @@
+FROM {{ image }}
+
+ENV PNPM_HOME="/opt/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN mkdir -p /opt/pnpm && chown 1000:1000 /opt/pnpm
+RUN npm install -g pnpm@9
+
+{{ set_user_and_home_dir }}
+
+RUN pnpm init
+{% if dependencies %}
+RUN pnpm install {{ dependencies }}
+{% endif %}
+
+COPY --chown=1000:1000 {{ main_file }} .
+
+CMD ["node", "{{ main_file }}"]

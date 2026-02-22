@@ -2,21 +2,20 @@ use axum_app_wrapper::AdHocPlugin;
 
 use crate::state::AppState;
 
-pub mod hello;
+pub mod run_code;
 
 /// Adds all API routes to the server under `/api`
 pub fn plugin() -> AdHocPlugin<AppState> {
     AdHocPlugin::new().on_setup(|router, _state| {
-        
         // Build API routes
-        let api_router = aide::axum::ApiRouter::new().nest("/hello", hello::routes());
+        let api_router = aide::axum::ApiRouter::new().route("/code/run", run_code::route());
 
         // OpenAPI configuration
         let mut openapi = aide::openapi::OpenApi {
             info: aide::openapi::Info {
                 title: "tinirun".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
-                description: Some("".to_string()),
+                description: Some("A simple code runner service using Docker".to_string()),
                 ..Default::default()
             },
             servers: vec![aide::openapi::Server {
@@ -38,6 +37,5 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             .route("/api/docs", swagger_route.into());
 
         Ok(router)
-        
     })
 }

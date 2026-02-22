@@ -1,0 +1,17 @@
+FROM {{ image }}
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONUSERBASE="/opt/python"
+ENV PATH="/opt/python/bin:$PATH"
+
+RUN mkdir -p /opt/python && chown 1000:1000 /opt/python
+
+{{ set_user_and_home_dir }}
+
+{% if dependencies %}
+RUN pip install --user --no-cache-dir {{ dependencies }}
+{% endif %}
+
+COPY {{ main_file }} .
+
+CMD ["python", "{{ main_file }}"]
