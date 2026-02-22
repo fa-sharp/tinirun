@@ -8,9 +8,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::runner::{
-    constants::SET_USER_AND_HOME_DIR,
-    executor::DockerExecutor,
-    structs::{CodeRunnerChunk, LanguageData},
+    constants::SET_USER_AND_HOME_DIR, executor::DockerExecutor, structs::LanguageData,
 };
 
 mod cleanup;
@@ -21,7 +19,7 @@ mod structs;
 mod validators;
 
 pub use plugin::plugin;
-pub use structs::{CodeLanguage, CodeRunnerInput};
+pub use structs::{CodeLanguage, CodeRunnerChunk, CodeRunnerInput};
 
 /// # Code runner using Docker containers
 ///

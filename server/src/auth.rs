@@ -10,7 +10,7 @@ use crate::state::AppState;
 pub struct ApiKey;
 
 /// Header name for the API key
-const API_KEY_HEADER: &str = "X-Runner-Api-Key";
+pub const API_KEY_HEADER: &str = "X-Runner-Api-Key";
 
 pub enum ApiKeyError {
     Missing,

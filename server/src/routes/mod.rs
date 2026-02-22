@@ -1,6 +1,9 @@
 use axum_app_wrapper::AdHocPlugin;
 
-use crate::{auth::ApiKey, state::AppState};
+use crate::{
+    auth::{API_KEY_HEADER, ApiKey},
+    state::AppState,
+};
 
 pub mod run_code;
 
@@ -9,7 +12,7 @@ pub fn plugin() -> AdHocPlugin<AppState> {
     AdHocPlugin::new().on_setup(|router, state| {
         // Build API routes
         let api_router = aide::axum::ApiRouter::new()
-            .route("/code/run", run_code::route())
+            .api_route("/code/run", run_code::route())
             .layer(axum::middleware::from_extractor_with_state::<ApiKey, _>(
                 state.clone(),
             ));
@@ -26,6 +29,19 @@ pub fn plugin() -> AdHocPlugin<AppState> {
                 url: "/api".to_string(),
                 ..Default::default()
             }],
+            components: Some(aide::openapi::Components {
+                security_schemes: FromIterator::from_iter([(
+                    "ApiKey".to_owned(),
+                    aide::openapi::ReferenceOr::Item(aide::openapi::SecurityScheme::ApiKey {
+                        name: API_KEY_HEADER.to_owned(),
+                        location: aide::openapi::ApiKeyLocation::Header,
+                        description: Some("API key for authentication".to_string()),
+                        extensions: Default::default(),
+                    }),
+                )]),
+                ..Default::default()
+            }),
+            security: vec![[("ApiKey".to_owned(), vec!["ApiKey".to_owned()])].into()],
             ..Default::default()
         };
 
