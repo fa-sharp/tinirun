@@ -80,7 +80,7 @@ impl DockerRunner {
             .context("failed to render Dockerfile")?;
 
         // Ping the Docker service to ensure it is reachable
-        self.client.ping().await.context("could not reach Docker")?;
+        self.client.ping().await?;
 
         // Spawn a task to run the code in a Docker container and send back events
         let (tx, rx) = mpsc::channel::<CodeRunnerChunk>(1024);
