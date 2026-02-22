@@ -18,7 +18,7 @@ static DOCKER_STATIC_DIR: include_dir::Dir<'_> =
 /// and add the code runner service to Axum state
 pub fn plugin() -> AdHocPlugin<AppState> {
     AdHocPlugin::new().on_init(|mut state| async {
-        let app_config = state.get::<AppConfig>().unwrap();
+        let app_config = state.get::<AppConfig>().expect("app config not found");
 
         // Connect to Docker and initialize client
         let client = tokio::task::spawn_blocking(Docker::connect_with_local_defaults)
