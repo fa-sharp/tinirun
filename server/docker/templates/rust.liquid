@@ -11,6 +11,12 @@ RUN cargo add {{ dependencies }}
 RUN cargo build
 
 COPY --chown=1000:1000 {{ main_file }} src/
+{% if files %}
+{% for file in files %}
+COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
+{% endfor %}
+{% endif %}
+
 RUN touch src/{{ main_file }}
 RUN cargo build
 

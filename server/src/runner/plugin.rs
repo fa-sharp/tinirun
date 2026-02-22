@@ -20,7 +20,7 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             .context("could not connect to Docker")?;
 
         // Parse language config
-        let language_data = {
+        let language_data: HashMap<super::CodeLanguage, super::structs::LanguageData> = {
             let language_data_file = DOCKER_STATIC_DIR
                 .get_file("data.toml")
                 .ok_or_else(|| anyhow::anyhow!("language data file not found"))?;
@@ -34,7 +34,6 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             let dir = DOCKER_STATIC_DIR
                 .get_dir("templates")
                 .ok_or_else(|| anyhow::anyhow!("template directory not found"))?;
-
             dir.files()
                 .filter_map(|file| {
                     let lang = file.path().file_stem()?.to_string_lossy().into_owned();

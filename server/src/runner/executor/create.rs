@@ -27,7 +27,6 @@ pub fn setup_container(
         labels: Some([("tinirun-id".into(), run_id.into())].into()),
         host_config: Some(HostConfig {
             readonly_rootfs: Some(true),
-            // nodev prevents creation of device files inside /tmp
             tmpfs: Some([("/tmp".into(), "rw,noexec,nosuid,nodev,size=100m".into())].into()),
             memory: Some((mem_limit_mb * 1024 * 1024).into()),
             nano_cpus: Some((cpu_limit * 1000.0).round() as i64 * 1_000_000),
@@ -39,8 +38,8 @@ pub fn setup_container(
             }]),
             cap_drop: Some(vec!["ALL".into()]),
             security_opt: Some(vec!["no-new-privileges".into()]),
-            ipc_mode: Some("private".into()), // Private IPC namespace: prevents shared-memory attacks via SysV IPC / POSIX shm
-            cgroupns_mode: Some(HostConfigCgroupnsModeEnum::PRIVATE), // Private cgroup namespace: hides the host cgroup hierarchy from the container
+            ipc_mode: Some("private".into()),
+            cgroupns_mode: Some(HostConfigCgroupnsModeEnum::PRIVATE),
             ..Default::default()
         }),
         ..Default::default()

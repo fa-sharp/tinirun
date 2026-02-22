@@ -9,6 +9,7 @@ use crate::state::AppState;
 /// Extractor that checks for valid API key
 pub struct ApiKey;
 
+/// Header name for the API key
 const API_KEY_HEADER: &str = "X-Runner-Api-Key";
 
 pub enum ApiKeyError {

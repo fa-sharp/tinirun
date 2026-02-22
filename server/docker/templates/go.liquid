@@ -11,7 +11,13 @@ RUN go mod init temp
 RUN go get {{ dependencies }}
 {% endif %}
 
-COPY {{ main_file }} .
+COPY --chown=1000:1000 {{ main_file }} .
+{% if files %}
+{% for file in files %}
+COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
+{% endfor %}
+{% endif %}
+
 RUN go build
 
 CMD ["./temp"]

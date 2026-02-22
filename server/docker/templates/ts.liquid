@@ -11,6 +11,11 @@ RUN npm install -g pnpm@9
 RUN pnpm init
 RUN pnpm install tsx {{ dependencies }}
 
-COPY {{ main_file }} .
+COPY --chown=1000:1000 {{ main_file }} .
+{% if files %}
+{% for file in files %}
+COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
+{% endfor %}
+{% endif %}
 
 CMD ["pnpm", "tsx", "{{ main_file }}"]

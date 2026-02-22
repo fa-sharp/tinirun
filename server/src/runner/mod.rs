@@ -72,6 +72,7 @@ impl DockerRunner {
         let dockerfile_vars = liquid::object!({
             "image": lang_data.image,
             "main_file": lang_data.main_file,
+            "files": input.files,
             "dependencies": input.dependencies.as_ref().map(|deps| deps.join(" ")),
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });

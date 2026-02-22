@@ -42,6 +42,7 @@ impl DockerExecutor {
         // Code execution config
         let super::CodeRunnerInput {
             code,
+            files,
             timeout,
             mem_limit_mb,
             ..
@@ -78,8 +79,14 @@ impl DockerExecutor {
         }
 
         // Create build context (Dockerfile and code files)
-        send_info(&tx, "Creating build context with 2 files...".into()).await;
-        let build_context = build::create_build_context(code, main_file, dockerfile).await;
+        let mut build_ctx_message = format!("Creating build context: Dockerfile, {main_file}...");
+        if let Some(files) = files.as_ref() {
+            for file in files {
+                build_ctx_message.push_str(&format!(", {}", file.path.to_string_lossy()));
+            }
+        }
+        send_info(&tx, build_ctx_message).await;
+        let build_context = build::create_build_context(code, main_file, dockerfile, files).await;
 
         // Build Docker image
         send_info(&tx, format!("Building image '{run_id}'...")).await;

@@ -27,6 +27,7 @@ liquid = "0.26.11"
 schemars = { version = "1.2", features = ["preserve_order"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
+serde_with = { version = "3.16.1", features = ["base64", "schemars_1"] }
 tokio = { version = "1.49.0", default-features = false, features = [
   "net",
   "rt",
