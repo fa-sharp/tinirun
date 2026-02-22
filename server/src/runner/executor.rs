@@ -83,8 +83,15 @@ impl DockerExecutor {
 
         // Build Docker image
         send_info(&tx, format!("Building image '{run_id}'...")).await;
+        let image_labels = [
+            ("tinirun", "v".to_owned() + env!("CARGO_PKG_VERSION")),
+            ("tinirun-id", run_id.to_owned()),
+        ];
         let build_stream = self.client.build_image(
-            BuildImageOptionsBuilder::new().t(&run_id).build(),
+            BuildImageOptionsBuilder::new()
+                .t(&run_id)
+                .labels(&image_labels.into())
+                .build(),
             None,
             Some(bollard::body_try_stream(build_context)),
         );
