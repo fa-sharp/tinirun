@@ -1,10 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::Context;
 use axum_app_wrapper::AdHocPlugin;
 use bollard::Docker;
 
-use crate::{runner::DockerRunner, state::AppState};
+use crate::{
+    config::AppConfig,
+    runner::{DockerRunner, cleanup::image_cleanup},
+    state::AppState,
+};
 
 /// Static directory containing language configs and Dockerfile templates
 static DOCKER_STATIC_DIR: include_dir::Dir<'_> =
@@ -14,6 +18,8 @@ static DOCKER_STATIC_DIR: include_dir::Dir<'_> =
 /// and add the code runner service to Axum state
 pub fn plugin() -> AdHocPlugin<AppState> {
     AdHocPlugin::new().on_init(|mut state| async {
+        let app_config = state.get::<AppConfig>().unwrap();
+
         // Connect to Docker and initialize client
         let client = tokio::task::spawn_blocking(Docker::connect_with_local_defaults)
             .await?
@@ -49,6 +55,11 @@ pub fn plugin() -> AdHocPlugin<AppState> {
                 .collect::<Result<_, anyhow::Error>>()?
         };
 
+        // Start image cleanup task
+        let cleanup_period = Duration::from_secs(app_config.cleanup_interval.into());
+        tokio::spawn(image_cleanup(client.clone(), cleanup_period));
+
+        // Add runner to state
         let runner = DockerRunner::new(client, language_data, templates);
         state.insert(runner);
 

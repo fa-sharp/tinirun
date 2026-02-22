@@ -9,13 +9,21 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct AppConfig {
+    /// API key that needs to be provided in the `X-Runner-Api-Key` header.
     pub api_key: String,
+    /// Interval in seconds between image cleanup runs.
+    #[serde(default = "default_cleanup_interval")]
+    pub cleanup_interval: u32,
+
     #[serde(default = "default_host")]
     pub host: IpAddr,
     #[serde(default = "default_port")]
     pub port: u16,
     #[serde(default = "default_log_level")]
     pub log_level: String,
+}
+fn default_cleanup_interval() -> u32 {
+    300
 }
 fn default_host() -> IpAddr {
     IpAddr::V4(Ipv4Addr::LOCALHOST)

@@ -98,7 +98,7 @@ impl DockerRunner {
                     tracing::info!("Code execution '{run_id}' cancelled (connection dropped)");
                 }
             }
-            cleanup::docker_cleanup(&executor.client, &run_id).await;
+            cleanup::run_cleanup(&executor.client, &run_id).await;
         });
 
         // Return the stream of events from the code runner
