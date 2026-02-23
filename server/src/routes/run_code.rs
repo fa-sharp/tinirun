@@ -10,7 +10,8 @@ use crate::{
 
 pub fn route() -> aide::axum::routing::ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
-        op.summary("Run code")
+        op.id("run_code")
+            .summary("Run code")
             .description("Run a one-off script with the given parameters and stream the output")
     })
 }

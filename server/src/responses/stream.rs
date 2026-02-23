@@ -1,6 +1,7 @@
 use aide::OperationOutput;
 use axum::{
     Json,
+    http::{HeaderValue, header::CONTENT_TYPE},
     response::{IntoResponse, Sse, sse::Event},
 };
 use axum_streams::StreamBodyAs;
@@ -42,7 +43,9 @@ where
             StreamType::Sse => {
                 Sse::new(self.stream.map(|chunk| Event::default().json_data(chunk))).into_response()
             }
-            StreamType::Jsonl => StreamBodyAs::json_nl(self.stream).into_response(),
+            StreamType::Jsonl => StreamBodyAs::json_nl(self.stream)
+                .header(CONTENT_TYPE, HeaderValue::from_static("application/jsonl"))
+                .into_response(),
         }
     }
 }
@@ -64,17 +67,19 @@ where
                 example: None,
                 external_docs: None,
             };
-            ["text/event-stream", "application/jsonl"]
-                .into_iter()
-                .for_each(|mime| {
-                    operation_response.content.insert(
-                        mime.into(),
-                        aide::openapi::MediaType {
-                            schema: Some(schema_object.clone()),
-                            ..Default::default()
-                        },
-                    );
-                });
+            operation_response.content = FromIterator::from_iter(
+                ["text/event-stream", "application/jsonl"]
+                    .into_iter()
+                    .map(|mime| {
+                        (
+                            mime.to_owned(),
+                            aide::openapi::MediaType {
+                                schema: Some(schema_object.clone()),
+                                ..Default::default()
+                            },
+                        )
+                    }),
+            );
             Some(operation_response)
         } else {
             None
