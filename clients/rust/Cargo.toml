@@ -1,0 +1,18 @@
+[package]
+name = "tinirun-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+futures = { version = "0.3", default-features = false, features = ["std"] }
+reqwest = { version = "0.13", default-features = false, features = [
+  "http2",
+  "rustls",
+  "stream"
+] }
+reqwest-streams = { version = "0.15", features = ["json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = "2.0"
+tinirun-models = { path = "../../crates/models" }
+validator = { workspace = true }

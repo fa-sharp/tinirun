@@ -9,9 +9,8 @@ use bollard::{
     },
 };
 use futures::StreamExt;
+use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
-
-use crate::runner::structs::CodeRunnerChunk;
 
 const DEFAULT_TIMEOUT_SECONDS: u32 = 30;
 const DEFAULT_MEM_LIMIT_MB: u32 = 512;
@@ -102,10 +101,16 @@ impl DockerExecutor {
             None,
             Some(bollard::body_try_stream(build_context)),
         );
-        if let Some(image_id) = build::process_build_stream(build_stream, &tx).await {
+        let (image_id, build_logs) = build::process_build_stream(build_stream, &tx).await;
+        if let Some(image_id) = image_id {
             send_info(&tx, format!("Built image '{run_id}' with ID {image_id}")).await;
         } else {
-            send_error(&tx, format!("Failed to build image '{run_id}'")).await;
+            let _ = tx
+                .send(CodeRunnerChunk::BuildError {
+                    message: format!("Failed to build image '{run_id}'"),
+                    build_logs,
+                })
+                .await;
             return;
         }
 

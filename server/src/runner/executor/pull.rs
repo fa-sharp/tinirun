@@ -1,11 +1,9 @@
 use bollard::models::CreateImageInfo;
 use futures::{Stream, StreamExt};
+use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
 
-use crate::runner::{
-    executor::{send_debug, send_error},
-    structs::CodeRunnerChunk,
-};
+use crate::runner::executor::{send_debug, send_info};
 
 /// Process the pull_image output from Docker and send logs to the client.
 pub async fn process_pull_stream(
@@ -21,7 +19,7 @@ pub async fn process_pull_stream(
                     send_debug(&tx, format!("Pulling image: {status} {current}/{total}")).await;
                 }
                 if let Some(error_detail) = info.error_detail {
-                    send_error(&tx, format!("Error pulling image: {error_detail:?}")).await;
+                    send_info(&tx, format!("Error while pulling image: {error_detail:?}")).await;
                 }
             }
             Err(err) => return Err(err),

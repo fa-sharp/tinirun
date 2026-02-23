@@ -2,9 +2,8 @@ use std::time::Duration;
 
 use bollard::container::{AttachContainerResults, LogOutput};
 use futures::StreamExt;
+use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
-
-use crate::runner::structs::CodeRunnerChunk;
 
 /// Maximum number of bytes accumulated for stdout or stderr.
 /// Output beyond this limit is silently dropped to prevent memory exhaustion.
@@ -39,7 +38,10 @@ pub async fn attach_and_process_output(
                     }
                     _ => {}
                 },
-                Err(e) => super::send_error(&tx, e.to_string()).await,
+                Err(e) => {
+                    let message = format!("Error while processing output: {e}");
+                    super::send_info(&tx, message).await;
+                }
             }
         }
     })

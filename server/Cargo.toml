@@ -21,10 +21,10 @@ figment = { version = "0.10.19", features = ["env"] }
 futures = { version = "0.3.32", default-features = false, features = ["std"] }
 include_dir = "0.7.4"
 liquid = "0.26.11"
-schemars = { version = "1.2", features = ["preserve_order"] }
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-serde_with = { version = "3.16.1", features = ["base64", "schemars_1"] }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tinirun-models = { path = "../crates/models" }
 tokio = { version = "1.49.0", default-features = false, features = [
   "net",
   "rt",
@@ -38,4 +38,4 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 type-map = "0.5.1"
 uuid = { version = "1.21.0", features = ["v4"] }
-validator = { version = "0.20.0", features = ["derive"] }
+validator = { workspace = true }

@@ -1,0 +1,12 @@
+[package]
+name = "tinirun-models"
+version = "0.1.0"
+edition = "2024"
+description = "Shared models for the tinirun API"
+
+[dependencies]
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_with = { version = "3.16", features = ["base64", "schemars_1"] }
+validator = { workspace = true }

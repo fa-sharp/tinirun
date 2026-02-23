@@ -1,10 +1,10 @@
 use axum::extract::State;
 use futures::Stream;
+use tinirun_models::{CodeRunnerChunk, CodeRunnerInput};
 
 use crate::{
     input::{AppValidJson, StreamType},
     responses::StreamResponse,
-    runner::{CodeRunnerChunk, CodeRunnerInput},
     state::AppState,
 };
 

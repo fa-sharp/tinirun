@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 use futures::Stream;
+use tinirun_models::{CodeRunnerChunk, CodeRunnerInput, CodeRunnerLanguage};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
@@ -19,7 +20,6 @@ mod structs;
 mod validators;
 
 pub use plugin::plugin;
-pub use structs::{CodeLanguage, CodeRunnerChunk, CodeRunnerInput};
 
 /// # Code runner using Docker containers
 ///
@@ -28,14 +28,14 @@ pub use structs::{CodeLanguage, CodeRunnerChunk, CodeRunnerInput};
 /// there are always risks associated with running untrusted code in Docker.
 pub struct DockerRunner {
     client: bollard::Docker,
-    language_data: HashMap<CodeLanguage, LanguageData>,
+    language_data: HashMap<CodeRunnerLanguage, LanguageData>,
     dockerfile_templates: HashMap<String, liquid::Template>,
 }
 
 impl DockerRunner {
     pub fn new(
         client: bollard::Docker,
-        language_data: HashMap<CodeLanguage, LanguageData>,
+        language_data: HashMap<CodeRunnerLanguage, LanguageData>,
         dockerfile_templates: HashMap<String, liquid::Template>,
     ) -> Self {
         Self {
