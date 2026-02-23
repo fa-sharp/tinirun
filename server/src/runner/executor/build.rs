@@ -4,7 +4,7 @@ use tinirun_models::{CodeRunnerChunk, CodeRunnerFile};
 use tokio::sync::mpsc;
 use tokio_util::io::ReaderStream;
 
-use crate::runner::executor::send_info;
+use crate::runner::executor::{send_debug, send_info};
 
 /// Create the build context as a tar archive to send to the Docker instance. Returns a ReaderStream
 /// that can be passed to the Docker build API.
@@ -55,20 +55,19 @@ pub async fn process_build_stream(
                 }
                 if let Some(stream) = info.stream {
                     build_logs.push_str(&stream);
-                    build_logs.push('\n');
-                    send_info(tx, stream).await;
+                    send_debug(tx, stream).await;
                 }
                 if let Some(err) = info.error_detail.and_then(|e| e.message) {
                     let message = format!("Error during build: {err}");
-                    build_logs.push_str(&message);
                     build_logs.push('\n');
+                    build_logs.push_str(&message);
                     send_info(tx, message).await;
                 }
             }
             Err(err) => {
                 let message = format!("Error during build: {err}");
-                build_logs.push_str(&message);
                 build_logs.push('\n');
+                build_logs.push_str(&message);
                 send_info(tx, message).await;
             }
         }
