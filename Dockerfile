@@ -1,10 +1,11 @@
 ARG RUST_VERSION=1.90
 ARG DEBIAN_VERSION=bookworm
 
-
 ### Build server ###
 FROM rust:${RUST_VERSION}-slim-${DEBIAN_VERSION} AS build
 WORKDIR /app
+
+COPY Cargo.lock Cargo.toml ./
 
 COPY clients/rust ./clients/rust
 COPY crates ./crates
