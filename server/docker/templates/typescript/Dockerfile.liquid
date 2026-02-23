@@ -9,13 +9,14 @@ RUN npm install -g pnpm@9
 {{ set_user_and_home_dir }}
 
 RUN pnpm init
-{% if dependencies %}
-RUN pnpm install {{ dependencies }}
-{% endif %}
+RUN pnpm install tsx {{ dependencies }}
 
 COPY --chown=1000:1000 {{ main_file }} .
+{% if fn_file %}
+COPY --chown=1000:1000 {{ fn_file }} .
+{% endif %}
 {% for file in files %}
 COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
 {% endfor %}
 
-CMD ["node", "{{ main_file }}"]
+CMD ["pnpm", "tsx", "{{ main_file }}"]

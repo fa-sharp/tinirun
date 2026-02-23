@@ -7,6 +7,10 @@ RUN apk add --no-cache {{ dependencies }}
 {{ set_user_and_home_dir }}
 
 COPY --chown=1000:1000 {{ main_file }} .
+{% if fn_file %}
+COPY --chown=1000:1000 {{ fn_file }} .
+RUN chmod +x {{ fn_file }}
+{% endif %}
 {% for file in files %}
 COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
 {% endfor %}
