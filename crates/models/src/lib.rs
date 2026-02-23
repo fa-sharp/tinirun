@@ -1,3 +1,5 @@
+//! Shared models for the tinirun API
+
 use std::path::{Component, Path, PathBuf};
 
 use schemars::JsonSchema;
