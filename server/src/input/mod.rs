@@ -4,7 +4,10 @@ use axum::response::IntoResponse;
 use serde::Serialize;
 
 mod json;
+mod stream_type;
+
 pub use json::AppValidJson;
+pub use stream_type::StreamType;
 
 #[derive(Debug, Serialize)]
 pub struct InputValidationError {

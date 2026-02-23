@@ -1,9 +1,9 @@
-use axum::{extract::State, response::sse::Event};
-use futures::{Stream, StreamExt};
+use axum::extract::State;
+use futures::Stream;
 
 use crate::{
-    input::AppValidJson,
-    responses::SseResponse,
+    input::{AppValidJson, StreamType},
+    responses::StreamResponse,
     runner::{CodeRunnerChunk, CodeRunnerInput},
     state::AppState,
 };
@@ -11,20 +11,20 @@ use crate::{
 pub fn route() -> aide::axum::routing::ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
         op.summary("Run code")
-            .description("Run a one-off script with the given parameters")
+            .description("Run a one-off script with the given parameters and stream the output")
     })
 }
 
 async fn handler(
     State(state): State<AppState>,
+    stream_type: StreamType,
     AppValidJson(input): AppValidJson<CodeRunnerInput>,
-) -> Result<SseResponse<impl Stream<Item = Result<Event, axum::Error>>, CodeRunnerChunk>, String> {
+) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>, CodeRunnerChunk>, String> {
     let stream = state
         .runner
         .execute(input)
         .await
-        .map_err(|err| err.to_string())?
-        .map(|chunk| Event::default().json_data(chunk));
+        .map_err(|err| err.to_string())?;
 
-    Ok(SseResponse::new(stream))
+    Ok(StreamResponse::new(stream, stream_type))
 }

@@ -14,6 +14,7 @@ anyhow = "1.0.102"
 astral-tokio-tar = "0.5.6"
 axum = { version = "0.8.8", features = ["json", "query"] }
 axum-app-wrapper = { git = "https://gitea.fasharp.io/fa-sharp/axum-app-wrapper", rev = "a8d5e4f962" }
+axum-streams = { version = "0.24.0", features = ["json"] }
 bollard = { version = "0.20.1", features = ["ssl"] }
 dotenvy = "0.15.7"
 figment = { version = "0.10.19", features = ["env"] }

@@ -1,5 +1,5 @@
 //! API response types
 
-mod sse;
+mod stream;
 
-pub use sse::SseResponse;
+pub use stream::StreamResponse;
