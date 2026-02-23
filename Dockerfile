@@ -1,13 +1,17 @@
 ARG RUST_VERSION=1.90
 ARG DEBIAN_VERSION=bookworm
 
+
 ### Build server ###
 FROM rust:${RUST_VERSION}-slim-${DEBIAN_VERSION} AS build
 WORKDIR /app
 
-COPY Cargo.lock Cargo.toml ./
-COPY ./src ./src
-COPY ./docker ./docker
+COPY clients/rust ./clients/rust
+COPY crates ./crates
+
+COPY server/Cargo.toml ./server/Cargo.toml
+COPY server/src ./server/src
+COPY server/docker ./server/docker
 
 ARG pkg=tinirun-server
 
