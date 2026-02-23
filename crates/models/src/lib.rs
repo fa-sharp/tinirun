@@ -31,6 +31,7 @@ pub struct CodeRunnerInput {
     pub dependencies: Option<Vec<String>>,
     /// Additional files for the code execution. These files will be available to the code
     /// under the `./files` directory.
+    #[validate(length(max = 50))]
     pub files: Option<Vec<CodeRunnerFile>>,
     /// Timeout for the code execution in seconds
     #[validate(range(min = 5, max = 300))]
