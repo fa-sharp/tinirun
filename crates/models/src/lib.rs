@@ -27,7 +27,10 @@ pub struct CodeRunnerInput {
     pub code: String,
     /// Language of the code
     pub lang: CodeRunnerLanguage,
-    /// Dependencies for the code execution
+    /// Dependencies for the code execution. Versions and features can be specified
+    /// depending on the language's package manager.
+    #[schemars(example = vec!["lodash"])]
+    #[schemars(example = vec!["serde=1.0", "tokio=1.0", "--features", "serde/derive"])]
     pub dependencies: Option<Vec<String>>,
     /// Additional files for the code execution. These files will be available to the code
     /// under the `./files` directory.
