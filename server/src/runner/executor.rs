@@ -12,10 +12,6 @@ use futures::StreamExt;
 use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
 
-const DEFAULT_TIMEOUT_SECONDS: u32 = 30;
-const DEFAULT_MEM_LIMIT_MB: u32 = 512;
-const DEFAULT_CPU_LIMIT: f32 = 0.5;
-
 mod build;
 mod create;
 mod output_task;
@@ -44,6 +40,7 @@ impl DockerExecutor {
             files,
             timeout,
             mem_limit_mb,
+            cpu_limit,
             ..
         } = input;
         let super::LanguageData {
@@ -52,9 +49,6 @@ impl DockerExecutor {
             main_file,
             ..
         } = lang_data;
-
-        let timeout = timeout.unwrap_or(DEFAULT_TIMEOUT_SECONDS);
-        let mem_limit_mb = mem_limit_mb.unwrap_or(DEFAULT_MEM_LIMIT_MB);
 
         // Check if base image exists locally, and pull if needed
         send_info(&tx, format!("Checking base image '{image}'...")).await;
@@ -116,7 +110,7 @@ impl DockerExecutor {
 
         // Create the container
         let (body, options) =
-            create::setup_container(&run_id, &command, timeout, mem_limit_mb, DEFAULT_CPU_LIMIT);
+            create::setup_container(&run_id, &command, timeout, mem_limit_mb, cpu_limit);
         if let Err(err) = self.client.create_container(Some(options), body).await {
             send_error(&tx, format!("Failed to create container '{run_id}': {err}")).await;
             return;

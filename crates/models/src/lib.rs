@@ -37,11 +37,26 @@ pub struct CodeRunnerInput {
     #[validate(length(max = 50))]
     pub files: Option<Vec<CodeRunnerFile>>,
     /// Timeout for the code execution in seconds
+    #[serde(default = "default_timeout")]
     #[validate(range(min = 5, max = 300))]
-    pub timeout: Option<u32>,
+    pub timeout: u32,
     /// Memory limit for the code execution in megabytes
+    #[serde(default = "default_mem_limit")]
     #[validate(range(min = 1, max = 2048))]
-    pub mem_limit_mb: Option<u32>,
+    pub mem_limit_mb: u32,
+    /// CPU quota (1.0 = 1 CPU core)
+    #[serde(default = "default_cpu_limit")]
+    #[validate(range(min = 0.1, max = 4.0))]
+    pub cpu_limit: f32,
+}
+fn default_timeout() -> u32 {
+    60
+}
+fn default_mem_limit() -> u32 {
+    256
+}
+fn default_cpu_limit() -> f32 {
+    0.5
 }
 
 #[serde_as]
