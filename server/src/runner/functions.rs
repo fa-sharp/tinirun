@@ -128,7 +128,7 @@ impl FunctionExecutor {
         }
 
         // Create the container
-        let (body, options) = helpers::setup_container(
+        let (create_body, create_opt) = helpers::setup_container(
             &run_id,
             &image_tag,
             &command,
@@ -137,7 +137,9 @@ impl FunctionExecutor {
             mem_limit_mb,
             cpu_limit,
         );
-        self.client.create_container(Some(options), body).await?;
+        self.client
+            .create_container(Some(create_opt), create_body)
+            .await?;
 
         // Attach to container and setup capturing of logs/output
         let attach_options = AttachContainerOptionsBuilder::new()

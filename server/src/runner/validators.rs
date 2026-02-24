@@ -6,17 +6,19 @@ pub fn validate_deps_input(deps: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-/// Validate a dependency name so it is safe to interpolate into a Dockerfile `RUN` shell command.
-///
-/// Allowed characters should cover the needs of most package managers while
-/// excluding shell metacharacters that could be used for injection:
-///
-/// - Alphanumerics and `_`, `-`, `.` — universal package name characters
-/// - `/` — required by Go module paths (e.g. `github.com/pkg/errors`)
-/// - `:` — used in some Go and cargo specifiers
-/// - `@` — npm scoped packages (`@types/node`) and version pins (`lodash@4.17`)
-/// - `^`, `~`, `>`, `<`, `=` — semver range operators used by npm/pnpm
-/// - `[]` - used by Python
+/**
+Validate a dependency name so it is safe to interpolate into a Dockerfile `RUN` shell command.
+
+Allowed characters should cover the needs of most package managers while
+excluding shell metacharacters that could be used for injection:
+
+- Alphanumerics and `_`, `-`, `.` — universal package name characters
+- `/` — required by Go module paths (e.g. `github.com/pkg/errors`)
+- `:` — used in some Go and cargo specifiers
+- `@` — npm scoped packages (`@types/node`) and version pins (`lodash@4.17`)
+- `^`, `~`, `>`, `<`, `=` — semver range operators used by npm/pnpm
+- `[]` - used by Python
+*/
 fn validate_dependency_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
         return Err("dependency name must not be empty".into());

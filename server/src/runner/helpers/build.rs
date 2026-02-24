@@ -37,6 +37,7 @@ pub async fn process_build_stream(
 ) -> (Option<String>, String) {
     let mut image_id = None;
     let mut build_logs = String::with_capacity(1024);
+
     while let Some(build_info_result) = build_stream.next().await {
         match build_info_result {
             Ok(info) => {

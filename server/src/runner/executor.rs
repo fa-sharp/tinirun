@@ -32,7 +32,6 @@ impl DockerExecutor {
         lang_data: super::LanguageData,
         tx: mpsc::Sender<super::CodeRunnerChunk>,
     ) {
-        // Code execution config
         let super::CodeRunnerInput {
             code,
             files,
@@ -145,25 +144,19 @@ impl DockerExecutor {
         }
 
         // Wait for container to exit, then get exit status and final stdout and stderr
-        let container_exit_result = tokio::time::timeout(
+        let exit_result = tokio::time::timeout(
             Duration::from_secs(timeout.into()),
             self.client.wait_container(&run_id, None).next(),
         )
         .await;
         let (stdout, stderr) = container_output_task.await.unwrap_or_default();
+        let (timeout, exit_code) = helpers::process_exit_status(exit_result);
 
         let result_chunk = CodeRunnerChunk::Result {
             stdout,
             stderr,
-            timeout: container_exit_result.is_err(),
-            exit_code: match container_exit_result {
-                Ok(Some(Ok(res))) => Some(res.status_code),
-                Ok(Some(Err(err))) => match err {
-                    bollard::errors::Error::DockerContainerWaitError { code, .. } => Some(code),
-                    _ => None,
-                },
-                _ => None,
-            },
+            timeout,
+            exit_code,
         };
         let _ = tx.send(result_chunk).await;
     }
