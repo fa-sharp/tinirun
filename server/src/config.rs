@@ -9,6 +9,8 @@ use crate::state::AppState;
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct AppConfig {
+    /// Redis URL
+    pub redis_url: String,
     /// API key that needs to be provided in the `X-Runner-Api-Key` header.
     pub api_key: String,
     /// Interval in seconds between image cleanup runs.

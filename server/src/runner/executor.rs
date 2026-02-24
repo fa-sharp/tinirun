@@ -1,21 +1,19 @@
 //! Executor for running code in Docker containers
 
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use bollard::{
     Docker,
-    query_parameters::{
-        AttachContainerOptionsBuilder, BuildImageOptionsBuilder, CreateImageOptionsBuilder,
-    },
+    query_parameters::{AttachContainerOptionsBuilder, BuildImageOptionsBuilder},
 };
 use futures::StreamExt;
 use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
 
-mod build;
-mod create;
-mod output_task;
-mod pull;
+use crate::runner::{
+    constants::EXEC_LABEL,
+    helpers::{self, log},
+};
 
 pub struct DockerExecutor {
     pub client: Docker,
@@ -46,46 +44,39 @@ impl DockerExecutor {
         let super::LanguageData {
             image,
             command,
-            main_file,
+            main_filename: main_file,
             ..
         } = lang_data;
 
         // Check if base image exists locally, and pull if needed
-        send_info(&tx, format!("Checking base image '{image}'...")).await;
-        match self.client.inspect_image(&image).await {
-            Ok(_) => {}
-            Err(bollard::errors::Error::DockerResponseServerError { status_code, .. })
-                if status_code == 404 =>
-            {
-                send_info(&tx, format!("Pulling base image '{image}'...")).await;
-                let image_options = CreateImageOptionsBuilder::new().from_image(&image).build();
-                let pull_stream = self.client.create_image(Some(image_options), None, None);
-                if let Err(err) = pull::process_pull_stream(pull_stream, &tx).await {
-                    send_error(&tx, format!("Error pulling image: {err}")).await;
-                    return;
-                }
-            }
-            Err(err) => {
-                send_error(&tx, format!("Unexpected error when checking image: {err}")).await;
-                return;
-            }
+        log::send_info(&tx, format!("Checking base image '{image}'...")).await;
+        if let Err(e) = helpers::pull_image(&self.client, &image, &tx).await {
+            log::send_error(&tx, format!("Error while checking/pulling image: {e}")).await;
+            return;
         }
 
-        // Create build context (Dockerfile and code files)
-        let mut build_ctx_message = format!("Creating build context: Dockerfile, {main_file}...");
-        if let Some(files) = files.as_ref() {
-            for file in files {
-                build_ctx_message.push_str(&format!(", {}", file.path.to_string_lossy()));
-            }
+        // Create build context (Dockerfile, code, attached files)
+        let code_files = [
+            (PathBuf::from("Dockerfile"), dockerfile.into_bytes()),
+            (PathBuf::from(main_file), code.into_bytes()),
+        ];
+        let attached_files = files
+            .unwrap_or_default()
+            .into_iter()
+            .map(|file| (file.path, file.content));
+        let all_files: Vec<_> = code_files.into_iter().chain(attached_files).collect();
+        let mut build_ctx_message = String::from("Creating build context:");
+        for (path, _) in all_files.iter() {
+            build_ctx_message.push_str(&format!(" {path:?}"));
         }
-        send_info(&tx, build_ctx_message).await;
-        let build_context = build::create_build_context(code, main_file, dockerfile, files).await;
+        log::send_info(&tx, build_ctx_message).await;
+        let build_context = helpers::create_build_context(all_files);
 
         // Build Docker image
-        send_info(&tx, format!("Building image '{run_id}'...")).await;
+        log::send_info(&tx, format!("Building image '{run_id}'...")).await;
         let image_labels = [
             ("tinirun", "v".to_owned() + env!("CARGO_PKG_VERSION")),
-            ("tinirun-id", run_id.to_owned()),
+            (EXEC_LABEL, run_id.to_owned()),
         ];
         let build_stream = self.client.build_image(
             BuildImageOptionsBuilder::new()
@@ -95,9 +86,9 @@ impl DockerExecutor {
             None,
             Some(bollard::body_try_stream(build_context)),
         );
-        let (image_id, build_logs) = build::process_build_stream(build_stream, &tx).await;
+        let (image_id, build_logs) = helpers::process_build_stream(build_stream, &tx).await;
         if let Some(image_id) = image_id {
-            send_info(&tx, format!("Built image '{run_id}' with ID {image_id}")).await;
+            log::send_info(&tx, format!("Built image '{run_id}' with ID {image_id}")).await;
         } else {
             let _ = tx
                 .send(CodeRunnerChunk::BuildError {
@@ -110,9 +101,9 @@ impl DockerExecutor {
 
         // Create the container
         let (body, options) =
-            create::setup_container(&run_id, &command, timeout, mem_limit_mb, cpu_limit);
+            helpers::setup_container(&run_id, &run_id, &command, timeout, mem_limit_mb, cpu_limit);
         if let Err(err) = self.client.create_container(Some(options), body).await {
-            send_error(&tx, format!("Failed to create container '{run_id}': {err}")).await;
+            log::send_error(&tx, format!("Failed to create container '{run_id}': {err}")).await;
             return;
         }
 
@@ -129,20 +120,20 @@ impl DockerExecutor {
             .await
         {
             Ok(attached) => {
-                let task = output_task::attach_and_process_output(attached, timeout, tx.clone());
+                let task = helpers::attach_task(attached, None, timeout, tx.clone());
                 tokio::spawn(task)
             }
             Err(err) => {
-                send_error(&tx, format!("Failed to attach to container: {err}")).await;
+                log::send_error(&tx, format!("Failed to attach to container: {err}")).await;
                 return;
             }
         };
 
         // Start container
-        send_info(&tx, format!("Starting container with '{command}'...")).await;
+        log::send_info(&tx, format!("Starting container with '{command}'...")).await;
         if let Err(e) = self.client.start_container(&run_id, None).await {
             let message = format!("Failed to start container '{run_id}': {e}");
-            send_error(&tx, message.clone()).await;
+            log::send_error(&tx, message.clone()).await;
             return;
         }
 
@@ -169,15 +160,4 @@ impl DockerExecutor {
         };
         let _ = tx.send(result_chunk).await;
     }
-}
-
-// Logging utilities
-async fn send_info(tx: &mpsc::Sender<CodeRunnerChunk>, message: String) {
-    let _ = tx.send(CodeRunnerChunk::Info(message)).await;
-}
-async fn send_debug(tx: &mpsc::Sender<CodeRunnerChunk>, message: String) {
-    let _ = tx.send(CodeRunnerChunk::Debug(message)).await;
-}
-async fn send_error(tx: &mpsc::Sender<CodeRunnerChunk>, message: String) {
-    let _ = tx.send(CodeRunnerChunk::Error(message)).await;
 }

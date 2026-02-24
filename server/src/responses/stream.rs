@@ -13,17 +13,17 @@ use crate::input::StreamType;
 
 /// Represents a stream response with a specific chunk type that will be documented
 /// in the OpenAPI specification.
-pub struct StreamResponse<S, Chunk>
+pub struct StreamResponse<S>
 where
-    S: Stream<Item = Chunk> + Send + 'static,
+    S: Stream + Send + 'static,
 {
     stream: S,
     stream_type: StreamType,
 }
 
-impl<S, Chunk> StreamResponse<S, Chunk>
+impl<S> StreamResponse<S>
 where
-    S: Stream<Item = Chunk> + Send + 'static,
+    S: Stream + Send + 'static,
 {
     pub fn new(stream: S, stream_type: StreamType) -> Self {
         Self {
@@ -33,10 +33,10 @@ where
     }
 }
 
-impl<S, Chunk> IntoResponse for StreamResponse<S, Chunk>
+impl<S> IntoResponse for StreamResponse<S>
 where
-    S: Stream<Item = Chunk> + Send + 'static,
-    Chunk: Serialize + Send + Sync + 'static,
+    S: Stream + Send + 'static,
+    S::Item: Serialize + Send + Sync + 'static,
 {
     fn into_response(self) -> axum::response::Response {
         match self.stream_type {
@@ -50,20 +50,20 @@ where
     }
 }
 
-impl<S, Chunk> OperationOutput for StreamResponse<S, Chunk>
+impl<S> OperationOutput for StreamResponse<S>
 where
-    S: Stream<Item = Chunk> + Send + 'static,
-    Chunk: Serialize + JsonSchema,
+    S: Stream + Send + 'static,
+    S::Item: Serialize + JsonSchema,
 {
-    type Inner = Chunk;
+    type Inner = S::Item;
 
     fn operation_response(
         ctx: &mut aide::generate::GenContext,
         operation: &mut aide::openapi::Operation,
     ) -> Option<aide::openapi::Response> {
-        if let Some(mut operation_response) = Json::<Chunk>::operation_response(ctx, operation) {
+        if let Some(mut operation_response) = Json::<S::Item>::operation_response(ctx, operation) {
             let schema_object = aide::openapi::SchemaObject {
-                json_schema: ctx.schema.subschema_for::<Chunk>(),
+                json_schema: ctx.schema.subschema_for::<S::Item>(),
                 example: None,
                 external_docs: None,
             };

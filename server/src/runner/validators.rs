@@ -1,9 +1,7 @@
-use anyhow::Context;
-
-pub fn validate_deps_input(deps: &[String]) -> anyhow::Result<()> {
+pub fn validate_deps_input(deps: &[String]) -> Result<(), String> {
     for dep in deps {
         validate_dependency_name(&dep)
-            .with_context(|| format!("Invalid dependency name: '{dep}'"))?;
+            .map_err(|err| format!("Invalid dependency name '{dep}': {err}"))?;
     }
     Ok(())
 }
@@ -19,19 +17,19 @@ pub fn validate_deps_input(deps: &[String]) -> anyhow::Result<()> {
 /// - `@` — npm scoped packages (`@types/node`) and version pins (`lodash@4.17`)
 /// - `^`, `~`, `>`, `<`, `=` — semver range operators used by npm/pnpm
 /// - `[]` - used by Python
-fn validate_dependency_name(name: &str) -> anyhow::Result<()> {
+fn validate_dependency_name(name: &str) -> Result<(), String> {
     if name.is_empty() {
-        anyhow::bail!("dependency name must not be empty");
+        return Err("dependency name must not be empty".into());
     }
 
     let invalid_char = name.chars().find(|c| !is_safe_dep_char(*c));
 
     if let Some(ch) = invalid_char {
-        anyhow::bail!(
+        return Err(format!(
             "dependency name contains forbidden character {:?} — \
              only alphanumerics and _ - . / : @ ^ ~ > < = [ ] are allowed",
-            ch
-        );
+            ch,
+        ));
     }
 
     Ok(())

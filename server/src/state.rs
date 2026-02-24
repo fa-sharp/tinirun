@@ -4,7 +4,7 @@ use std::{any::type_name, ops::Deref, sync::Arc};
 
 use type_map::concurrent::TypeMap;
 
-use crate::{config::AppConfig, runner::DockerRunner};
+use crate::{config::AppConfig, redis::RedisClient, runner::DockerRunner};
 
 /// App state stored in the Axum router
 #[derive(Clone)]
@@ -13,6 +13,7 @@ pub struct AppState(Arc<AppStateInner>);
 pub struct AppStateInner {
     pub config: AppConfig,
     pub runner: DockerRunner,
+    pub redis: RedisClient,
 }
 
 impl Deref for AppState {
@@ -30,6 +31,7 @@ impl TryFrom<TypeMap> for AppState {
         Ok(Self(Arc::new(AppStateInner {
             config: extract(&mut map)?,
             runner: extract(&mut map)?,
+            redis: extract(&mut map)?,
         })))
     }
 }

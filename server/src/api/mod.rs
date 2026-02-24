@@ -5,6 +5,7 @@ use crate::{
     state::AppState,
 };
 
+pub mod function;
 pub mod run_code;
 
 /// Adds all API routes to the server under `/api`
@@ -13,6 +14,7 @@ pub fn plugin() -> AdHocPlugin<AppState> {
         // Build API routes
         let api_router = aide::axum::ApiRouter::new()
             .api_route("/code/run", run_code::route())
+            .nest("/function", function::routes())
             .layer(axum::middleware::from_extractor_with_state::<ApiKey, _>(
                 state.clone(),
             ));

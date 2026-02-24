@@ -1,12 +1,13 @@
 use std::{collections::HashMap, time::Duration};
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use axum_app_wrapper::AdHocPlugin;
 use bollard::Docker;
 
 use crate::{
     config::AppConfig,
-    runner::{DockerRunner, cleanup::image_cleanup},
+    redis::RedisClient,
+    runner::{DockerRunner, helpers::image_cleanup_task, structs::LanguageTemplates},
     state::AppState,
 };
 
@@ -18,7 +19,9 @@ static DOCKER_STATIC_DIR: include_dir::Dir<'_> =
 /// and add the code runner service to Axum state
 pub fn plugin() -> AdHocPlugin<AppState> {
     AdHocPlugin::new().on_init(|mut state| async {
-        let app_config = state.get::<AppConfig>().expect("app config not found");
+        let app_config = state
+            .get::<AppConfig>()
+            .ok_or_else(|| anyhow!("app config not found"))?;
 
         // Connect to Docker and initialize client
         let client = tokio::task::spawn_blocking(Docker::connect_with_local_defaults)
@@ -29,38 +32,69 @@ pub fn plugin() -> AdHocPlugin<AppState> {
         let language_data: HashMap<super::CodeRunnerLanguage, super::structs::LanguageData> = {
             let language_data_file = DOCKER_STATIC_DIR
                 .get_file("data.toml")
-                .ok_or_else(|| anyhow::anyhow!("language data file not found"))?;
+                .ok_or_else(|| anyhow!("language data file not found"))?;
+
             toml::from_slice(language_data_file.contents())
                 .context("could not parse language data file")?
         };
 
-        // Parse all Dockerfile templates
-        let templates: HashMap<String, liquid::Template> = {
+        // Parse all language templates
+        let templates: HashMap<super::CodeRunnerLanguage, LanguageTemplates> = {
             let parser = liquid::ParserBuilder::with_stdlib().build()?;
-            let dir = DOCKER_STATIC_DIR
+            let templates_dir = DOCKER_STATIC_DIR
                 .get_dir("templates")
-                .ok_or_else(|| anyhow::anyhow!("template directory not found"))?;
-            dir.files()
-                .filter_map(|file| {
-                    let lang = file.path().file_stem()?.to_string_lossy().into_owned();
-                    let parse_result = parser.parse(file.contents_utf8()?);
-                    Some((lang, parse_result))
-                })
-                .map(|(lang, parse_result)| {
-                    let template = parse_result.with_context(|| {
-                        format!("Dockerfile template parsing failed: '{lang}.liquid'")
-                    })?;
-                    Ok((lang, template))
-                })
-                .collect::<Result<_, anyhow::Error>>()?
+                .ok_or_else(|| anyhow!("template directory not found"))?;
+
+            let mut templates = HashMap::new();
+            for (lang, lang_data) in language_data.iter() {
+                let lang_dir = templates_dir.path().join(&lang_data.template);
+                let folder = templates_dir
+                    .get_dir(&lang_dir)
+                    .ok_or_else(|| anyhow!("missing template directory for {lang:?}"))?;
+
+                let template_file = folder
+                    .get_file(lang_dir.join("Dockerfile.liquid"))
+                    .ok_or_else(|| anyhow!("missing Dockerfile template for {lang:?}"))?;
+                let template = parser
+                    .parse(template_file.contents_utf8().ok_or_else(|| {
+                        anyhow!("invalid UTF8 in Dockerfile template for {lang:?}")
+                    })?)
+                    .with_context(|| format!("failed to parse Dockerfile template for {lang:?}"))?;
+
+                let main_file = folder
+                    .get_file(lang_dir.join(&lang_data.main_filename))
+                    .ok_or_else(|| anyhow!("missing main file for {lang:?}"))?
+                    .contents_utf8()
+                    .ok_or_else(|| anyhow!("invalid UTF8 in main file for {lang:?}"))?;
+                let fn_file = folder
+                    .get_file(lang_dir.join(&lang_data.fn_filename))
+                    .ok_or_else(|| anyhow!("missing function file for {lang:?}"))?
+                    .contents_utf8()
+                    .ok_or_else(|| anyhow!("invalid UTF8 in function file for {lang:?}"))?;
+
+                templates.insert(
+                    lang.to_owned(),
+                    LanguageTemplates {
+                        dockerfile: template,
+                        main_file: main_file.to_owned(),
+                        fn_file: fn_file.to_owned(),
+                    },
+                );
+            }
+
+            templates
         };
 
         // Start image cleanup task
         let cleanup_period = Duration::from_secs(app_config.cleanup_interval.into());
-        tokio::spawn(image_cleanup(client.clone(), cleanup_period));
+        tokio::spawn(image_cleanup_task(client.clone(), cleanup_period));
 
         // Add runner to state
-        let runner = DockerRunner::new(client, language_data, templates);
+        let redis = state
+            .get::<RedisClient>()
+            .ok_or_else(|| anyhow!("redis not in state"))?
+            .to_owned();
+        let runner = DockerRunner::new(client, redis, language_data, templates);
         state.insert(runner);
 
         Ok(state)

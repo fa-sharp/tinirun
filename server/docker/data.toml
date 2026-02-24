@@ -3,37 +3,41 @@
 [bash]
 image = "bash:5.3"
 template = "bash"
-main_file = "script.sh"
 fn_file = "run.sh"
+main_file = "script.sh"
 command = "bash script.sh"
 
 [go]
 image = "golang:1.24-slim"
 template = "go"
-main_file = "main.go"
 fn_file = "function.go"
+main_file = "main.go"
 command = "./temp"
 
 [javascript]
 image = "node:20-slim"
 template = "javascript"
+fn_file = "function.js"
 main_file = "index.js"
 command = "node index.js"
 
 [python]
 image = "python:3.13-slim"
 template = "python"
+fn_file = "function.py"
 main_file = "main.py"
 command = "python main.py"
 
 [rust]
 image = "rust:1.85-slim"
 template = "rust"
+fn_file = "function.rs"
 main_file = "main.rs"
 command = "./target/debug/temp"
 
 [typescript]
 image = "node:20-slim"
 template = "typescript"
+fn_file = "function.ts"
 main_file = "main.ts"
 command = "pnpm tsx main.ts"

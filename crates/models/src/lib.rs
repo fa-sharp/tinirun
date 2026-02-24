@@ -5,11 +5,15 @@ use std::path::{Component, Path, PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
+use strum::AsRefStr;
 use validator::{Validate, ValidationError};
 
 /// Supported languages for the code runner
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(
+    Debug, Default, AsRefStr, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
+)]
 #[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
 pub enum CodeRunnerLanguage {
     Bash,
     Go,
@@ -32,7 +36,7 @@ pub struct CodeRunnerInput {
     #[schemars(example = vec!["lodash"])]
     #[schemars(example = vec!["serde=1.0", "tokio=1.0", "--features", "serde/derive"])]
     pub dependencies: Option<Vec<String>>,
-    /// Additional files for the code execution. These files will be available to the code
+    /// Files for the code execution. These files will be available to the code
     /// under the `./files` directory.
     #[validate(length(max = 50))]
     pub files: Option<Vec<CodeRunnerFile>>,
@@ -89,8 +93,52 @@ fn validate_path(path: &PathBuf) -> Result<(), ValidationError> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Validate)]
+pub struct CreateFunctionInput {
+    /// Name of the function to create
+    #[validate(length(
+        min = 1,
+        max = 50,
+        message = "function name must be between 1 and 50 characters"
+    ))]
+    pub name: String,
+    /// Language of the function
+    pub language: CodeRunnerLanguage,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Validate)]
+pub struct UpdateFunctionInput {
+    /// New code for the function
+    pub code: String,
+    /// An optional description for the function
+    pub description: Option<String>,
+    /// Dependencies for the code execution. Versions and features can be specified
+    /// depending on the language's package manager.
+    #[schemars(example = vec!["lodash"])]
+    #[schemars(example = vec!["serde=1.0", "tokio=1.0", "--features", "serde/derive"])]
+    pub dependencies: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Validate)]
+pub struct RunFunctionInput {
+    /// Input to the function
+    pub input: String,
+    /// Timeout for the code execution in seconds
+    #[serde(default = "default_timeout")]
+    #[validate(range(min = 5, max = 300))]
+    pub timeout: u32,
+    /// Memory limit for the code execution in megabytes
+    #[serde(default = "default_mem_limit")]
+    #[validate(range(min = 1, max = 2048))]
+    pub mem_limit_mb: u32,
+    /// CPU quota (1.0 = 1 CPU core)
+    #[serde(default = "default_cpu_limit")]
+    #[validate(range(min = 0.1, max = 4.0))]
+    pub cpu_limit: f32,
+}
+
 /// Chunk of the code runner stream output
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "event", content = "data", rename_all = "snake_case")]
 pub enum CodeRunnerChunk {
     /// # Info

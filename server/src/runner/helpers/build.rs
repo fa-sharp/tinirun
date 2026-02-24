@@ -1,36 +1,26 @@
+use std::path::PathBuf;
+
 use bollard::models::BuildInfo;
 use futures::{Stream, StreamExt};
-use tinirun_models::{CodeRunnerChunk, CodeRunnerFile};
+use tinirun_models::CodeRunnerChunk;
 use tokio::sync::mpsc;
 use tokio_util::io::ReaderStream;
 
-use crate::runner::executor::{send_debug, send_info};
+use crate::runner::helpers::log::{send_debug, send_info};
 
 /// Create the build context as a tar archive to send to the Docker instance. Returns a ReaderStream
 /// that can be passed to the Docker build API.
-pub async fn create_build_context(
-    code: String,
-    main_file: String,
-    dockerfile: String,
-    files: Option<Vec<CodeRunnerFile>>,
+pub fn create_build_context(
+    files: Vec<(PathBuf, Vec<u8>)>,
 ) -> ReaderStream<tokio::io::DuplexStream> {
     let (tar_writer, tar_reader) = tokio::io::duplex(8192); // 8KB max buffer
     tokio::spawn(async move {
         let mut tar = tokio_tar::Builder::new(tar_writer);
-        if let Some(files) = files {
-            for file in files {
-                let mut header = tokio_tar::Header::new_gnu();
-                header.set_size(file.content.len() as u64);
-                header.set_mode(0o644);
-                tar.append_data(&mut header, &file.path, file.content.as_slice())
-                    .await?;
-            }
-        }
-        for (path, content) in [("Dockerfile", dockerfile), (&main_file, code)] {
+        for (path, content) in files {
             let mut header = tokio_tar::Header::new_gnu();
             header.set_size(content.len() as u64);
             header.set_mode(0o644);
-            tar.append_data(&mut header, path, content.as_bytes())
+            tar.append_data(&mut header, &path, content.as_slice())
                 .await?;
         }
         tar.finish().await

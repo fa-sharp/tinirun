@@ -6,7 +6,7 @@ use serde::Serialize;
 mod json;
 mod stream_type;
 
-pub use json::AppValidJson;
+pub use json::AppJson;
 pub use stream_type::StreamType;
 
 #[derive(Debug, Serialize)]

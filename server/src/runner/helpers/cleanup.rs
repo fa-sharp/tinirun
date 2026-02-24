@@ -5,6 +5,8 @@ use bollard::{
     query_parameters::{PruneImagesOptionsBuilder, RemoveContainerOptionsBuilder},
 };
 
+use crate::runner::constants::EXEC_LABEL;
+
 /// Cleanup Docker resources associated with a code execution run.
 pub async fn run_cleanup(docker: &Docker, run_id: &str) {
     // Stop the container, ignoring errors in case it wasn't started or is already stopped
@@ -18,15 +20,15 @@ pub async fn run_cleanup(docker: &Docker, run_id: &str) {
 }
 
 /// Task to periodically clean up Docker images created by code execution runs.
-pub async fn image_cleanup(docker: Docker, period: Duration) {
+pub async fn image_cleanup_task(docker: Docker, period: Duration) {
     let mut interval = tokio::time::interval(period);
     loop {
         interval.tick().await;
 
-        // Clean up images **before** the specified duration to avoid affecting current runs
+        // Clean up images created **before** the specified duration to avoid affecting current runs
         let until = format!("{}s", period.as_secs());
         let filters = [
-            ("label", vec!["tinirun"]),
+            ("label", vec![EXEC_LABEL]),
             ("until", vec![&until]),
             ("dangling", vec!["false"]),
         ];

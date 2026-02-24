@@ -3,7 +3,7 @@ use futures::Stream;
 use tinirun_models::{CodeRunnerChunk, CodeRunnerInput};
 
 use crate::{
-    input::{AppValidJson, StreamType},
+    input::{AppJson, StreamType},
     responses::StreamResponse,
     state::AppState,
 };
@@ -19,8 +19,8 @@ pub fn route() -> aide::axum::routing::ApiMethodRouter<AppState> {
 async fn handler(
     State(state): State<AppState>,
     stream_type: StreamType,
-    AppValidJson(input): AppValidJson<CodeRunnerInput>,
-) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>, CodeRunnerChunk>, String> {
+    AppJson(input): AppJson<CodeRunnerInput>,
+) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>>, String> {
     let stream = state
         .runner
         .execute(input)

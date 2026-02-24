@@ -13,6 +13,7 @@ use bollard::{
 /// - Mounts /tmp as a size-limited tmpfs with noexec, nosuid, and nodev.
 pub fn setup_container(
     run_id: &str,
+    image_tag: &str,
     command: &str,
     timeout: u32,
     mem_limit_mb: u32,
@@ -20,7 +21,7 @@ pub fn setup_container(
 ) -> (ContainerCreateBody, CreateContainerOptions) {
     let run_command = ["timeout", &format!("{timeout}s"), "sh", "-c", command];
     let container_body = ContainerCreateBody {
-        image: Some(run_id.to_owned()),
+        image: Some(image_tag.to_owned()),
         cmd: Some(run_command.into_iter().map(str::to_owned).collect()),
         env: Some(vec!["HOME=/tmp/home".into()]),
         network_disabled: Some(true),

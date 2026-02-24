@@ -9,4 +9,5 @@ schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { version = "3.16", features = ["base64", "schemars_1"] }
+strum = { workspace = true }
 validator = { workspace = true }
