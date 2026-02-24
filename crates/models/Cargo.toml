@@ -5,9 +5,10 @@ edition = "2024"
 description = "Shared models for the tinirun API"
 
 [dependencies]
+regex = "1.12.3"
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-serde_with = { version = "3.16", features = ["base64", "schemars_1"] }
+serde_with = { workspace = true }
 strum = { workspace = true }
 validator = { workspace = true }

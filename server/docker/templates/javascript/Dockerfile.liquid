@@ -9,6 +9,7 @@ RUN npm install -g pnpm@9
 {{ set_user_and_home_dir }}
 
 RUN pnpm init
+RUN pnpm pkg set type="module"
 {% if dependencies %}
 RUN pnpm install {{ dependencies }}
 {% endif %}

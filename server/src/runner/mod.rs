@@ -123,6 +123,7 @@ impl DockerRunner {
             "image": lang_data.image,
             "main_file": lang_data.main_filename,
             "fn_file": lang_data.fn_filename,
+            "files": None::<Vec<String>>,
             "dependencies": info.dependencies,
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });

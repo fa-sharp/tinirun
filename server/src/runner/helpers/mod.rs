@@ -6,7 +6,7 @@ mod exit;
 pub mod log;
 mod pull;
 
-pub use attach::attach_task;
+pub use attach::output_task;
 pub use build::{create_build_context, process_build_stream};
 pub use cleanup::{image_cleanup_task, run_cleanup};
 pub use create::setup_container;

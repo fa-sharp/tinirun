@@ -96,11 +96,10 @@ fn validate_path(path: &PathBuf) -> Result<(), ValidationError> {
 #[derive(Debug, Serialize, Deserialize, JsonSchema, Validate)]
 pub struct CreateFunctionInput {
     /// Name of the function to create
-    #[validate(length(
-        min = 1,
-        max = 50,
-        message = "function name must be between 1 and 50 characters"
-    ))]
+    #[validate(
+        length(min = 1, max = 50,),
+        regex(path = "regex::Regex::new(r\"^[a-zA-Z_-]+$\").unwrap()")
+    )]
     pub name: String,
     /// Language of the function
     pub language: CodeRunnerLanguage,

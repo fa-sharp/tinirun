@@ -15,6 +15,7 @@ pub fn setup_container(
     run_id: &str,
     image_tag: &str,
     command: &str,
+    stdin: bool,
     timeout: u32,
     mem_limit_mb: u32,
     cpu_limit: f32,
@@ -25,6 +26,8 @@ pub fn setup_container(
         cmd: Some(run_command.into_iter().map(str::to_owned).collect()),
         env: Some(vec!["HOME=/tmp/home".into()]),
         network_disabled: Some(true),
+        open_stdin: Some(stdin),
+        stdin_once: Some(stdin),
         labels: Some([("tinirun-id".into(), run_id.into())].into()),
         host_config: Some(HostConfig {
             readonly_rootfs: Some(true),

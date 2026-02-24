@@ -16,7 +16,10 @@ axum = { version = "0.8.8", features = ["json", "query"] }
 axum-app-wrapper = { git = "https://gitea.fasharp.io/fa-sharp/axum-app-wrapper", rev = "a8d5e4f962" }
 axum-streams = { version = "0.24.0", features = ["json"] }
 bollard = { version = "0.20.1", features = ["ssl"] }
-chrono = { version = "0.4.43", default-features = false, features = ["serde"] }
+chrono = { version = "0.4.43", default-features = false, features = [
+  "now",
+  "serde"
+] }
 dotenvy = "0.15.7"
 figment = { version = "0.10.19", features = ["env"] }
 fred = { version = "10.1.0", default-features = false, features = [
@@ -30,6 +33,7 @@ liquid = "0.26.11"
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_with = { workspace = true }
 strum = { workspace = true }
 thiserror = "2.0.18"
 tinirun-models = { path = "../crates/models" }

@@ -24,18 +24,21 @@ async fn handler(
     stream_type: StreamType,
     AppJson(input): AppJson<CreateFunctionInput>,
 ) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>>, AppError> {
-    if let Some(_) = state.redis.get_fn_detail(&input.name).await? {
+    if let Some(_) = state.redis.get_fn_info(&input.name).await? {
         return Err(AppError::BadRequest("Function already exists".into()));
     }
 
-    let template = state
+    let templates = state
         .runner
         .templates
         .get(&input.language)
-        .ok_or(AppError::BadRequest("Language template not found".into()))?;
+        .ok_or(AppError::BadRequest("Language templates not found".into()))?;
     let fn_info = FunctionDetail {
-        code: template.fn_file.to_owned(),
+        code: templates.fn_file.to_owned(),
+        lang: input.language,
         status: FunctionStatus::Building,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
         ..Default::default()
     };
     state.redis.set_fn(&input.name, fn_info.clone()).await?;

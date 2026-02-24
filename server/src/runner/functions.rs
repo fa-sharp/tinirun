@@ -6,7 +6,7 @@ use bollard::{
 };
 use futures::StreamExt;
 use tinirun_models::{CodeRunnerChunk, RunFunctionInput};
-use tokio::sync::mpsc;
+use tokio::{io::AsyncWriteExt, sync::mpsc};
 
 use crate::{
     redis::{FunctionDetail, FunctionInfo},
@@ -42,15 +42,15 @@ impl FunctionExecutor {
     ) -> Result<(), ()> {
         let image_tag = Self::fn_tag(&fn_name, fn_info.version);
         let LanguageData {
-            image,
+            image: base_image,
             main_filename,
             fn_filename,
             ..
         } = lang_data;
 
         // Check if base image exists locally, and pull if needed
-        log::send_info(&tx, format!("Checking base image '{image}'...")).await;
-        if let Err(e) = helpers::pull_image(&self.client, &image, &tx).await {
+        log::send_info(&tx, format!("Checking base image '{base_image}'...")).await;
+        if let Err(e) = helpers::pull_image(&self.client, &base_image, &tx).await {
             log::send_error(&tx, format!("Error while checking/pulling image: {e}")).await;
             return Err(());
         }
@@ -132,13 +132,14 @@ impl FunctionExecutor {
             &run_id,
             &image_tag,
             &command,
+            true,
             timeout,
             mem_limit_mb,
             cpu_limit,
         );
         self.client.create_container(Some(options), body).await?;
 
-        // Attach to container, write to stdin, and setup capturing of logs/output
+        // Attach to container and setup capturing of logs/output
         let attach_options = AttachContainerOptionsBuilder::new()
             .stream(true)
             .stdin(true)
@@ -146,16 +147,25 @@ impl FunctionExecutor {
             .stderr(true)
             .logs(true)
             .build();
-        let container = self
+        let mut container = self
             .client
-            .attach_container(&run_id, Some(attach_options))
+            .attach_container(&run_id, Some(attach_options.clone()))
             .await?;
-        let attach_task = helpers::attach_task(container, Some(input), timeout, tx.clone());
-        let container_output = tokio::spawn(attach_task);
+        let container_output =
+            tokio::spawn(helpers::output_task(container.output, timeout, tx.clone()));
 
-        // Start container
+        // Start container and write input to stdin
         log::send_info(&tx, format!("Starting container with '{command}'...")).await;
         self.client.start_container(&run_id, None).await?;
+
+        log::send_info(&tx, "Writing input to container".into()).await;
+        if let Err(err) = container.input.write_all(input.as_bytes()).await {
+            log::send_info(&tx, format!("Failed to write input: {err}")).await;
+        }
+        if let Err(err) = container.input.shutdown().await {
+            log::send_info(&tx, format!("Failed to flush input: {err}")).await;
+        }
+        drop(container.input);
 
         // Wait for container to exit, then get exit status and final stdout and stderr
         let container_exit_result = tokio::time::timeout(

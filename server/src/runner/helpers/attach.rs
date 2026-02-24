@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use bollard::container::{AttachContainerResults, LogOutput};
-use futures::StreamExt;
+use bollard::container::LogOutput;
+use futures::{Stream, StreamExt};
 use tinirun_models::CodeRunnerChunk;
-use tokio::{io::AsyncWriteExt, sync::mpsc};
+use tokio::sync::mpsc;
 
 use crate::runner::helpers::log;
 
@@ -14,36 +14,21 @@ const MAX_OUTPUT_BYTES: usize = 1024 * 1024; // 1 MB
 /// Grace period for the container to start
 const GRACE_PERIOD_SECS: u32 = 5;
 
-/// Attach to the Docker container, optionally send stdin, and then
-/// send stdout/stderr logs back to the client, while also
-/// returning the accumulated output at the end of execution.
-pub async fn attach_task(
-    mut attached_container: AttachContainerResults,
-    input: Option<String>,
+/// Attach to the Docker container output and send stdout/stderr logs back
+/// to the client, while also returning the accumulated output at the
+/// end of execution.
+pub async fn output_task(
+    mut output_stream: impl Stream<Item = Result<LogOutput, bollard::errors::Error>> + Unpin,
     timeout: u32,
     tx: mpsc::Sender<CodeRunnerChunk>,
 ) -> (String, String) {
-    // If input provided, write it to the container's input stream in a separate task
-    if let Some(input) = input {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            log::send_info(&tx, "Writing input to container".into()).await;
-            if let Err(err) = attached_container.input.write_all(input.as_bytes()).await {
-                log::send_info(&tx, format!("Failed to write input: {err}")).await;
-            }
-            if let Err(err) = attached_container.input.flush().await {
-                log::send_info(&tx, format!("Failed to flush input: {err}")).await;
-            }
-        });
-    }
-
-    // Capture stdout and stderr logs
     let mut stdout = String::new();
     let mut stderr = String::new();
+
     let _ = tokio::time::timeout(
         Duration::from_secs((timeout + GRACE_PERIOD_SECS).into()),
         async {
-            while let Some(output_result) = attached_container.output.next().await {
+            while let Some(output_result) = output_stream.next().await {
                 match output_result {
                     Ok(output) => match output {
                         LogOutput::StdOut { message } => {

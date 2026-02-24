@@ -100,8 +100,15 @@ impl DockerExecutor {
         }
 
         // Create the container
-        let (body, options) =
-            helpers::setup_container(&run_id, &run_id, &command, timeout, mem_limit_mb, cpu_limit);
+        let (body, options) = helpers::setup_container(
+            &run_id,
+            &run_id,
+            &command,
+            false,
+            timeout,
+            mem_limit_mb,
+            cpu_limit,
+        );
         if let Err(err) = self.client.create_container(Some(options), body).await {
             log::send_error(&tx, format!("Failed to create container '{run_id}': {err}")).await;
             return;
@@ -120,7 +127,7 @@ impl DockerExecutor {
             .await
         {
             Ok(attached) => {
-                let task = helpers::attach_task(attached, None, timeout, tx.clone());
+                let task = helpers::output_task(attached.output, timeout, tx.clone());
                 tokio::spawn(task)
             }
             Err(err) => {

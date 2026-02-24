@@ -7,7 +7,6 @@ use crate::{
     api::function::FunctionNamePath,
     errors::AppError,
     input::{AppJson, StreamType},
-    redis::{FunctionDetail, FunctionStatus},
     responses::StreamResponse,
     runner::validate_deps_input,
     state::AppState,
@@ -32,21 +31,14 @@ async fn handler(
             .map_err(|e| AppError::BadRequest(format!("Invalid dependencies: {e}")))?;
     }
 
-    let curr_info = state
+    let mut fn_detail = state
         .redis
         .get_fn_detail(&name)
         .await?
         .ok_or(AppError::NotFound)?;
-    let updated_info = FunctionDetail {
-        code: input.code,
-        lang: curr_info.lang,
-        description: input.description,
-        dependencies: input.dependencies.map(|d| d.join(" ")),
-        status: FunctionStatus::Building,
-        version: curr_info.version + 1,
-    };
-    state.redis.set_fn(&name, updated_info.clone()).await?;
+    fn_detail.update(input);
+    state.redis.set_fn(&name, fn_detail.clone()).await?;
 
-    let stream = state.runner.build_function(name, updated_info).await?;
+    let stream = state.runner.build_function(name, fn_detail).await?;
     Ok(StreamResponse::new(stream, stream_type))
 }

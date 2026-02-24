@@ -1,0 +1,27 @@
+use aide::axum::routing::ApiMethodRouter;
+use axum::{
+    Json,
+    extract::{Path, State},
+};
+
+use crate::{
+    api::function::FunctionNamePath, errors::AppError, redis::FunctionInfo, state::AppState,
+};
+
+pub fn route() -> ApiMethodRouter<AppState> {
+    aide::axum::routing::get_with(handler, |op| {
+        op.id("get_function")
+            .summary("Get function info")
+            .description("Get function info and status")
+    })
+}
+
+pub async fn handler(
+    State(state): State<AppState>,
+    Path(FunctionNamePath { name }): Path<FunctionNamePath>,
+) -> Result<Json<FunctionInfo>, AppError> {
+    match state.redis.get_fn_info(&name).await? {
+        Some(function) => Ok(Json(function)),
+        None => Err(AppError::NotFound),
+    }
+}
