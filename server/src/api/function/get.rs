@@ -16,7 +16,7 @@ pub fn route() -> ApiMethodRouter<AppState> {
     })
 }
 
-pub async fn handler(
+async fn handler(
     State(state): State<AppState>,
     Path(FunctionNamePath { name }): Path<FunctionNamePath>,
 ) -> Result<Json<FunctionInfo>, AppError> {

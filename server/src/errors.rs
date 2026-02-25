@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use tinirun_models::CodeRunnerError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -16,6 +17,8 @@ pub enum AppError {
     Redis(#[from] fred::error::Error),
     #[error("Docker client error: {0}")]
     Docker(#[from] bollard::errors::Error),
+    #[error("Execution failed: {0}")]
+    ExecutionFailed(CodeRunnerError),
     #[error("Server error: {0}")]
     Server(String),
 }
@@ -33,6 +36,11 @@ impl IntoResponse for AppError {
             }
             AppError::NotFound => (StatusCode::NOT_FOUND, "Not Found").into_response(),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
+            AppError::ExecutionFailed(err) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Code execution failed: {err}"),
+            )
+                .into_response(),
             AppError::Server(err) => {
                 tracing::warn!("Server error: {err}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response()

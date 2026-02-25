@@ -7,7 +7,11 @@ use bollard::Docker;
 use crate::{
     config::AppConfig,
     redis::RedisClient,
-    runner::{DockerRunner, helpers::image_cleanup_task, structs::LanguageTemplates},
+    runner::{
+        DockerRunner,
+        helpers::{image_cleanup_task, sync_function_status_task},
+        structs::LanguageTemplates,
+    },
     state::AppState,
 };
 
@@ -85,15 +89,23 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             templates
         };
 
-        // Start image cleanup task
-        let cleanup_period = Duration::from_secs(app_config.cleanup_interval.into());
-        tokio::spawn(image_cleanup_task(client.clone(), cleanup_period));
-
-        // Add runner to state
         let redis = state
             .get::<RedisClient>()
             .ok_or_else(|| anyhow!("redis not in state"))?
             .to_owned();
+
+        // Start image cleanup task
+        let cleanup_period = Duration::from_secs(app_config.cleanup_interval.into());
+        tokio::spawn(image_cleanup_task(client.clone(), cleanup_period));
+
+        // Start function status sync task
+        tokio::spawn(sync_function_status_task(
+            client.clone(),
+            redis.clone(),
+            Duration::from_secs(120),
+        ));
+
+        // Add runner to state
         let runner = DockerRunner::new(client, redis, language_data, templates);
         state.insert(runner);
 

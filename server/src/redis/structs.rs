@@ -1,18 +1,19 @@
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use serde_with::{DisplayFromStr, serde_as};
+use serde::{Deserialize, Serialize, ser::Error};
+use serde_with::{DisplayFromStr, serde_as, skip_serializing_none};
 use std::collections::HashMap;
-use strum::AsRefStr;
 use tinirun_models::{CodeRunnerError, CodeRunnerLanguage, UpdateFunctionInput};
 
-/// Build status of a function
-#[derive(Debug, Default, Clone, AsRefStr, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "status", rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
+/// Build status of the function
+#[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum FunctionStatus {
+    /// Function has not been built yet
     #[default]
     NotBuilt,
+    /// Function is being built
     Building,
+    /// The latest build of the function failed
     Error(CodeRunnerError),
     /// Function is ready to be used
     Ready {
@@ -25,6 +26,7 @@ pub enum FunctionStatus {
 
 /// Full function info stored in Redis
 #[serde_as]
+#[skip_serializing_none]
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FunctionDetail {
     pub code: String,
@@ -40,20 +42,32 @@ pub struct FunctionDetail {
 
 impl TryFrom<HashMap<String, String>> for FunctionDetail {
     type Error = serde_json::Error;
+
     fn try_from(hash: HashMap<String, String>) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(serde_json::to_value(hash)?)
+        let value_hash: serde_json::Map<String, serde_json::Value> = hash
+            .into_iter()
+            .map(|(key, value_str)| Ok((key, serde_json::from_str(&value_str)?)))
+            .collect::<Result<_, _>>()?;
+        serde_json::from_value(serde_json::Value::Object(value_hash))
     }
 }
 
-impl TryFrom<FunctionDetail> for HashMap<String, Option<String>> {
+impl TryFrom<FunctionDetail> for HashMap<String, String> {
     type Error = serde_json::Error;
     fn try_from(info: FunctionDetail) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(serde_json::to_value(info)?)
+        match serde_json::to_value(info)? {
+            serde_json::Value::Object(map) => map
+                .into_iter()
+                .map(|(key, value)| Ok((key, serde_json::to_string(&value)?)))
+                .collect(),
+            _ => Err(serde_json::Error::custom("FunctionDetail is not an object")),
+        }
     }
 }
 
 /// Selected function info stored in Redis
 #[serde_as]
+#[skip_serializing_none]
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FunctionInfo {
     pub lang: CodeRunnerLanguage,
@@ -65,22 +79,26 @@ pub struct FunctionInfo {
     pub version: u32,
 }
 
-impl TryFrom<HashMap<String, Option<String>>> for FunctionInfo {
-    type Error = serde_json::Error;
-    fn try_from(hash: HashMap<String, Option<String>>) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(serde_json::to_value(hash)?)
-    }
-}
-
 /// Keys in FunctionInfo (e.g. to fetch via `HMGET` from Redis)
 pub const FUNCTION_INFO_KEYS: &[&str; 6] = &[
     "lang",
     "description",
     "status",
-    "version",
     "created_at",
     "updated_at",
+    "version",
 ];
+
+impl TryFrom<HashMap<String, String>> for FunctionInfo {
+    type Error = serde_json::Error;
+    fn try_from(hash: HashMap<String, String>) -> Result<Self, serde_json::Error> {
+        let value_hash: serde_json::Map<String, serde_json::Value> = hash
+            .into_iter()
+            .map(|(key, value_str)| Ok((key, serde_json::from_str(&value_str)?)))
+            .collect::<Result<_, _>>()?;
+        serde_json::from_value(serde_json::Value::Object(value_hash))
+    }
+}
 
 impl FunctionDetail {
     /// Update function details with new input, set status to `Building`,

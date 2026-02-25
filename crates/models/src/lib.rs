@@ -177,10 +177,13 @@ pub struct CodeRunnerFunctionResult {
 #[derive(Debug, Clone, thiserror::Error, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CodeRunnerError {
+    /// The image build failed
     #[error("Failed to build image: {message}")]
     BuildFailed { message: String, logs: String },
+    /// There was an unexpected Docker error
     #[error("Docker error: {message}")]
     Docker { message: String },
+    /// The function image was not found and may need to be rebuilt
     #[error("Function image not found")]
     FunctionImageNotFound { message: String, image_tag: String },
 }
