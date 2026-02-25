@@ -14,6 +14,7 @@ use crate::{
         constants::{SET_USER_AND_HOME_DIR, UID_GID},
         executor::DockerExecutor,
         functions::FunctionExecutor,
+        helpers::log,
         structs::{LanguageData, LanguageTemplates},
     },
 };
@@ -97,7 +98,10 @@ impl DockerRunner {
 
             tracing::info!("Starting code execution with ID '{run_id}'");
             tokio::select! {
-                _ = executor.run(&run_id, input, dockerfile, lang_data, tx.clone()) => {
+                res = executor.run(&run_id, input, dockerfile, lang_data, tx.clone()) => {
+                    if let Err(err) = res {
+                        log::send_error(&tx, err).await;
+                    }
                     tracing::info!("Code execution '{run_id}' completed");
                 }
                 _ = tx.closed() => {
@@ -114,7 +118,7 @@ impl DockerRunner {
     /// Build the function image
     pub async fn build_function(
         &self,
-        name: String,
+        name: &str,
         info: FunctionDetail,
     ) -> Result<impl Stream<Item = CodeRunnerChunk> + use<>, AppError> {
         let (lang_data, templates) = self.get_lang_info(&info.lang)?;
@@ -141,6 +145,7 @@ impl DockerRunner {
         let (tx, rx) = mpsc::channel::<CodeRunnerChunk>(CHANNEL_BUFFER_SIZE);
         let client = self.client.clone();
         let redis = self.redis.clone();
+        let name = name.to_owned();
         let main_code = templates.main_file.to_owned();
         tokio::spawn(async move {
             // Build the function and update its status
@@ -149,8 +154,8 @@ impl DockerRunner {
                 .build_fn(&name, info, lang_data, dockerfile, main_code, tx)
                 .await
             {
-                Ok(_) => FunctionStatus::Ready,
-                Err(_) => FunctionStatus::NotBuilt,
+                Ok((tag, id)) => FunctionStatus::Ready { tag, id },
+                Err(err) => FunctionStatus::Error(err),
             };
             if let Err(err) = redis.set_fn_status(&name, status).await {
                 tracing::error!("Failed to set status of '{name}' function in Redis: {err}");
@@ -181,7 +186,10 @@ impl DockerRunner {
 
             tracing::info!("Running function '{name}' with run ID '{run_id}'");
             tokio::select! {
-                _ = executor.run_function(&run_id, &name, fn_info, input, lang_data, tx.clone()) => {
+                res = executor.run_function(&run_id, &name, fn_info, input, lang_data, tx.clone()) => {
+                    if let Err(err) = res {
+                        log::send_error(&tx, err).await;
+                    }
                     tracing::info!("Code execution '{run_id}' completed");
                 }
                 _ = tx.closed() => {

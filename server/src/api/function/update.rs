@@ -37,8 +37,12 @@ async fn handler(
         .await?
         .ok_or(AppError::NotFound)?;
     fn_detail.update(input);
-    state.redis.set_fn(&name, fn_detail.clone()).await?;
 
-    let stream = state.runner.build_function(name, fn_detail).await?;
-    Ok(StreamResponse::new(stream, stream_type))
+    let build_stream = state
+        .runner
+        .build_function(&name, fn_detail.clone())
+        .await?;
+    state.redis.set_fn(&name, fn_detail).await?;
+
+    Ok(StreamResponse::new(build_stream, stream_type))
 }

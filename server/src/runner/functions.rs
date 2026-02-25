@@ -5,13 +5,15 @@ use bollard::{
     query_parameters::{AttachContainerOptionsBuilder, BuildImageOptionsBuilder},
 };
 use futures::StreamExt;
-use tinirun_models::{CodeRunnerChunk, RunFunctionInput};
+use tinirun_models::{
+    CodeRunnerChunk, CodeRunnerError, CodeRunnerFunctionResult, RunFunctionInput,
+};
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
 use crate::{
     redis::{FunctionDetail, FunctionInfo},
     runner::{
-        constants::FN_LABEL,
+        constants::{APP_LABEL, FN_LABEL},
         helpers::{self, log},
         structs::LanguageData,
     },
@@ -31,6 +33,7 @@ impl FunctionExecutor {
         format!("code-runner-fn-{name}-v{version}")
     }
 
+    /// Build the function's Docker image. Returns the image tag and ID on success.
     pub async fn build_fn(
         &self,
         fn_name: &str,
@@ -39,7 +42,7 @@ impl FunctionExecutor {
         dockerfile: String,
         main_code: String,
         tx: mpsc::Sender<CodeRunnerChunk>,
-    ) -> Result<(), ()> {
+    ) -> Result<(String, String), CodeRunnerError> {
         let image_tag = Self::fn_tag(&fn_name, fn_info.version);
         let LanguageData {
             image: base_image,
@@ -51,8 +54,9 @@ impl FunctionExecutor {
         // Check if base image exists locally, and pull if needed
         log::send_info(&tx, format!("Checking base image '{base_image}'...")).await;
         if let Err(e) = helpers::pull_image(&self.client, &base_image, &tx).await {
-            log::send_error(&tx, format!("Error while checking/pulling image: {e}")).await;
-            return Err(());
+            return Err(CodeRunnerError::Docker {
+                message: format!("Error while checking/pulling base image: {e}"),
+            });
         }
 
         // Create build context (Dockerfile, main code, function code)
@@ -71,7 +75,7 @@ impl FunctionExecutor {
         // Build Docker image
         log::send_info(&tx, format!("Building image '{image_tag}'...")).await;
         let image_labels = [
-            ("tinirun", "v".to_owned() + env!("CARGO_PKG_VERSION")),
+            (APP_LABEL, "v".to_owned() + env!("CARGO_PKG_VERSION")),
             (FN_LABEL, fn_name.to_owned()),
         ];
         let build_stream = self.client.build_image(
@@ -86,16 +90,12 @@ impl FunctionExecutor {
         match helpers::process_build_stream(build_stream, &tx).await {
             (Some(image_id), _) => {
                 log::send_info(&tx, format!("Built image '{image_tag}' with ID {image_id}")).await;
-                Ok(())
+                Ok((image_tag, image_id))
             }
-            (None, build_logs) => {
-                let message = CodeRunnerChunk::BuildError {
-                    message: format!("Failed to build image '{image_tag}'"),
-                    build_logs,
-                };
-                tx.send(message).await.ok();
-                Err(())
-            }
+            (None, logs) => Err(CodeRunnerError::BuildFailed {
+                message: format!("Failed to build image '{image_tag}'"),
+                logs,
+            }),
         }
     }
 
@@ -107,7 +107,7 @@ impl FunctionExecutor {
         input: RunFunctionInput,
         lang_data: LanguageData,
         tx: mpsc::Sender<CodeRunnerChunk>,
-    ) -> Result<CodeRunnerChunk, bollard::errors::Error> {
+    ) -> Result<CodeRunnerFunctionResult, CodeRunnerError> {
         // Function input and language config
         let RunFunctionInput {
             input,
@@ -120,10 +120,9 @@ impl FunctionExecutor {
 
         // Ensure function image exists
         if !helpers::exists_image(&self.client, &image_tag).await? {
-            log::send_error(&tx, "No image - function may need to be rebuilt.".into()).await;
-            return Err(bollard::errors::Error::DockerResponseServerError {
-                status_code: 404,
-                message: "Image not found".into(),
+            return Err(CodeRunnerError::FunctionImageNotFound {
+                message: format!("Image missing for '{fn_name}'. Please rebuild the function."),
+                image_tag,
             });
         }
 
@@ -178,13 +177,19 @@ impl FunctionExecutor {
         let (stdout, stderr) = container_output.await.unwrap_or_default();
         let (timeout, exit_code) = helpers::process_exit_status(container_exit_result);
         let result_chunk = CodeRunnerChunk::Result {
-            stdout,
-            stderr,
+            stdout: stdout.clone(),
+            stderr: stderr.clone(),
             timeout,
             exit_code,
         };
-        tx.send(result_chunk.clone()).await.ok();
+        tx.send(result_chunk).await.ok();
 
-        Ok(result_chunk)
+        Ok(CodeRunnerFunctionResult {
+            input,
+            stdout,
+            stderr,
+            exit_code,
+            timeout,
+        })
     }
 }

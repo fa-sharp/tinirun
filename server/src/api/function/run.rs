@@ -30,7 +30,7 @@ async fn handler(
         .get_fn_info(&name)
         .await?
         .ok_or(AppError::NotFound)?;
-    if fn_info.status != FunctionStatus::Ready {
+    if !matches!(fn_info.status, FunctionStatus::Ready { .. }) {
         return Err(AppError::BadRequest("Function not ready".to_owned()));
     }
 

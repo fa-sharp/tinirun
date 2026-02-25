@@ -1,7 +1,11 @@
-// Container labels
-/// Container label for one-off executions
+// Container and image labels
+/// Label given to all containers and images created by the app
+pub const APP_LABEL: &str = "tinirun";
+/// Label indicating the run ID that created the container
+pub const ID_LABEL: &str = "tinirun-id";
+/// Image label for one-off executions
 pub const EXEC_LABEL: &str = "tinirun-exec";
-/// Container label for function images
+/// Image label for function images
 pub const FN_LABEL: &str = "tinirun-fn";
 
 // Dockerfile constants

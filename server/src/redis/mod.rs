@@ -21,23 +21,7 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             let app_config = state
                 .get::<AppConfig>()
                 .ok_or_else(|| anyhow!("app config not found"))?;
-            let config = fred::prelude::Config::from_url(&app_config.redis_url)
-                .context("Invalid Redis URL")?;
-            let client = fred::types::Builder::from_config(config)
-                .with_connection_config(|config| {
-                    config.connection_timeout = CLIENT_TIMEOUT;
-                    config.internal_command_timeout = CLIENT_TIMEOUT;
-                    config.max_command_attempts = 2;
-                    config.tcp = fred::prelude::TcpConfig {
-                        nodelay: Some(true),
-                        ..Default::default()
-                    };
-                })
-                .set_policy(fred::prelude::ReconnectPolicy::new_linear(0, 10_000, 1000))
-                .with_performance_config(|config| {
-                    config.default_command_timeout = CLIENT_TIMEOUT;
-                })
-                .build_pool(4)?;
+            let client = build_client(&app_config.redis_url)?;
             client.init().await.context("Failed to connect to Redis")?;
 
             state.insert(RedisClient::new(client, "tinirun:"));
@@ -51,4 +35,25 @@ pub fn plugin() -> AdHocPlugin<AppState> {
                 }
             }
         })
+}
+
+fn build_client(url: &str) -> anyhow::Result<fred::prelude::Pool> {
+    let config = fred::prelude::Config::from_url(url).context("Invalid Redis URL")?;
+    let client = fred::types::Builder::from_config(config)
+        .with_connection_config(|config| {
+            config.connection_timeout = CLIENT_TIMEOUT;
+            config.internal_command_timeout = CLIENT_TIMEOUT;
+            config.max_command_attempts = 2;
+            config.tcp = fred::prelude::TcpConfig {
+                nodelay: Some(true),
+                ..Default::default()
+            };
+        })
+        .set_policy(fred::prelude::ReconnectPolicy::new_linear(0, 10_000, 1000))
+        .with_performance_config(|config| {
+            config.default_command_timeout = CLIENT_TIMEOUT;
+        })
+        .build_pool(4)?;
+
+    Ok(client)
 }

@@ -32,8 +32,8 @@ async fn handler(
         .runner
         .templates
         .get(&input.language)
-        .ok_or(AppError::BadRequest("Language templates not found".into()))?;
-    let fn_info = FunctionDetail {
+        .ok_or(AppError::Server("Language templates not found".into()))?;
+    let fn_detail = FunctionDetail {
         code: templates.fn_file.to_owned(),
         lang: input.language,
         status: FunctionStatus::Building,
@@ -41,8 +41,12 @@ async fn handler(
         updated_at: chrono::Utc::now(),
         ..Default::default()
     };
-    state.redis.set_fn(&input.name, fn_info.clone()).await?;
 
-    let stream = state.runner.build_function(input.name, fn_info).await?;
-    Ok(StreamResponse::new(stream, stream_type))
+    let build_stream = state
+        .runner
+        .build_function(&input.name, fn_detail.clone())
+        .await?;
+    state.redis.set_fn(&input.name, fn_detail).await?;
+
+    Ok(StreamResponse::new(build_stream, stream_type))
 }

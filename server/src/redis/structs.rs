@@ -3,17 +3,24 @@ use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
 use std::collections::HashMap;
 use strum::AsRefStr;
-use tinirun_models::{CodeRunnerLanguage, UpdateFunctionInput};
+use tinirun_models::{CodeRunnerError, CodeRunnerLanguage, UpdateFunctionInput};
 
 /// Build status of a function
-#[derive(Debug, Default, Clone, PartialEq, AsRefStr, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Default, Clone, AsRefStr, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "status", rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum FunctionStatus {
     #[default]
     NotBuilt,
     Building,
-    Ready,
+    Error(CodeRunnerError),
+    /// Function is ready to be used
+    Ready {
+        /// The image tag of the function
+        tag: String,
+        /// The image id of the function
+        id: String,
+    },
 }
 
 /// Full function info stored in Redis

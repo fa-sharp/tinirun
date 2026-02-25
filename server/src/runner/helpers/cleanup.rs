@@ -2,10 +2,12 @@ use std::time::Duration;
 
 use bollard::{
     Docker,
-    query_parameters::{PruneImagesOptionsBuilder, RemoveContainerOptionsBuilder},
+    query_parameters::{
+        PruneContainersOptionsBuilder, PruneImagesOptionsBuilder, RemoveContainerOptionsBuilder,
+    },
 };
 
-use crate::runner::constants::EXEC_LABEL;
+use crate::runner::constants::{APP_LABEL, EXEC_LABEL};
 
 /// Cleanup Docker resources associated with a code execution run.
 pub async fn run_cleanup(docker: &Docker, run_id: &str) {
@@ -19,29 +21,47 @@ pub async fn run_cleanup(docker: &Docker, run_id: &str) {
     }
 }
 
-/// Task to periodically clean up Docker images created by code execution runs.
+/// Task to periodically clean up Docker images and containers created by code execution runs.
 pub async fn image_cleanup_task(docker: Docker, period: Duration) {
     let mut interval = tokio::time::interval(period);
     loop {
         interval.tick().await;
 
-        // Clean up images created **before** the specified duration to avoid affecting current runs
+        // Clean up resources created **before** the specified duration
         let until = format!("{}s", period.as_secs());
-        let filters = [
+
+        // Prune any stopped containers that are lying around
+        let prune_container_opt = PruneContainersOptionsBuilder::new()
+            .filters(&[("label", vec![APP_LABEL]), ("until", vec![&until])].into())
+            .build();
+        match docker.prune_containers(Some(prune_container_opt)).await {
+            Ok(res) => {
+                if let Some(containers) = res.containers_deleted
+                    && containers.len() > 0
+                {
+                    let mb = res.space_reclaimed.unwrap_or_default() as f32 / 1024.0 / 1024.0;
+                    tracing::info!("Pruned {} containers, saved {mb:.2} MB", containers.len());
+                }
+            }
+            Err(err) => tracing::warn!("Failed to prune containers: {err}"),
+        }
+
+        // Prune one-off code execution images
+        let image_filters = [
             ("label", vec![EXEC_LABEL]),
             ("until", vec![&until]),
             ("dangling", vec!["false"]),
         ];
-        let prune_options = PruneImagesOptionsBuilder::new()
-            .filters(&filters.into())
+        let prune_image_opt = PruneImagesOptionsBuilder::new()
+            .filters(&image_filters.into())
             .build();
-        match docker.prune_images(Some(prune_options)).await {
+        match docker.prune_images(Some(prune_image_opt)).await {
             Ok(res) => {
                 if let Some(images) = res.images_deleted
                     && images.len() > 0
                 {
                     let mb = res.space_reclaimed.unwrap_or_default() as f32 / 1024.0 / 1024.0;
-                    tracing::info!("Pruned {} images, reclaimed {mb:.2} MB", images.len());
+                    tracing::info!("Pruned {} images, saved {mb:.2} MB", images.len());
                 }
             }
             Err(err) => tracing::warn!("Failed to prune images: {err}"),

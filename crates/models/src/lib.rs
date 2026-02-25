@@ -155,11 +155,7 @@ pub enum CodeRunnerChunk {
     /// # Error
     /// This represents an issue that occurred before code could be executed. This
     /// should be the final chunk of the stream.
-    Error(String),
-    /// # Build error
-    /// This represents an issue that occurred during the building of the container. This
-    /// should be the final chunk of the stream.
-    BuildError { message: String, build_logs: String },
+    Error(CodeRunnerError),
     /// # Execution result
     /// Full result of the code execution. This should be the final chunk of the stream.
     Result {
@@ -168,4 +164,35 @@ pub enum CodeRunnerChunk {
         exit_code: Option<i64>,
         timeout: bool,
     },
+}
+
+pub struct CodeRunnerFunctionResult {
+    pub input: String,
+    pub stdout: String,
+    pub stderr: String,
+    pub exit_code: Option<i64>,
+    pub timeout: bool,
+}
+
+#[derive(Debug, Clone, thiserror::Error, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CodeRunnerError {
+    #[error("Failed to build image: {message}")]
+    BuildFailed { message: String, logs: String },
+    #[error("Docker error: {message}")]
+    Docker { message: String },
+    #[error("Function image not found")]
+    FunctionImageNotFound { message: String, image_tag: String },
+}
+
+#[cfg(feature = "bollard")]
+use bollard::errors::Error as BollardError;
+
+#[cfg(feature = "bollard")]
+impl From<BollardError> for CodeRunnerError {
+    fn from(err: BollardError) -> Self {
+        CodeRunnerError::Docker {
+            message: err.to_string(),
+        }
+    }
 }

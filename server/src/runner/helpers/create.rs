@@ -3,6 +3,8 @@ use bollard::{
     query_parameters::{CreateContainerOptions, CreateContainerOptionsBuilder},
 };
 
+use crate::runner::constants::ID_LABEL;
+
 /// Setup container creation for code execution. Attempts to isolate the
 /// container as much as possible:
 /// - Isolates the container from the host system by disabling networking and setting a read-only root filesystem.
@@ -28,7 +30,7 @@ pub fn setup_container(
         network_disabled: Some(true),
         open_stdin: Some(stdin),
         stdin_once: Some(stdin),
-        labels: Some([("tinirun-id".into(), run_id.into())].into()),
+        labels: Some([(ID_LABEL.into(), run_id.into())].into()),
         host_config: Some(HostConfig {
             readonly_rootfs: Some(true),
             tmpfs: Some([("/tmp".into(), "rw,noexec,nosuid,nodev,size=100m".into())].into()),

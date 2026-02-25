@@ -6,6 +6,8 @@ use reqwest_streams::{JsonStreamResponse, error::StreamBodyError};
 use tinirun_models::{CodeRunnerChunk, CodeRunnerInput};
 use validator::Validate;
 
+/// # Tinirun client
+/// A Rust client for the Tinirun API that supports streaming code execution logs and results.
 pub struct TinirunClient {
     client: reqwest::Client,
     base_url: String,
@@ -62,14 +64,23 @@ impl TinirunClient {
             .await?;
         if !response.status().is_success() {
             let status = response.status().as_u16();
-            let message = response
-                .json::<serde_json::Value>()
-                .await
-                .ok()
-                .map(|value| value["message"].as_str().unwrap_or_default().to_owned());
+            let message = extract_error_message(response).await;
             return Err(TinirunError::Api { status, message });
         }
 
         Ok(response.json_nl_stream::<CodeRunnerChunk>(64 * 1024))
     }
+}
+
+async fn extract_error_message(response: reqwest::Response) -> Option<String> {
+    if let Ok(response_text) = response.text().await {
+        if let Ok(value) = serde_json::to_value(&response_text) {
+            if let Some(message) = value["message"].as_str() {
+                return Some(message.to_owned());
+            }
+        } else {
+            return Some(response_text);
+        }
+    }
+    None
 }
