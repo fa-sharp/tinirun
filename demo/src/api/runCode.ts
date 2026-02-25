@@ -1,27 +1,32 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import type { TinirunSchemas } from "@tinirun/client";
-import { EventSourceParserStream } from "eventsource-parser/stream";
 import { apiClient } from ".";
 
 /**
  * Run a code snippet and get the output stream (called on the server
  * and streamed down to the client)
  */
-export const runCodeSnippetServerFn = createServerFn()
+export const runCodeSnippetServerFn = createServerFn({ method: "POST" })
 	.inputValidator((input: TinirunSchemas["CodeRunnerInput"]) => input)
-	.handler(async function* (ctx) {
-		const stream = await runCodeSnippet(ctx.data);
-		for await (const chunk of stream) {
-			yield chunk;
-		}
+	.handler(async (ctx) => {
+		const request = getRequest();
+		return await runCodeSnippet(ctx.data, request.signal);
 	});
 
 async function runCodeSnippet(
 	input: TinirunSchemas["CodeRunnerInput"],
-): Promise<ReadableStream<TinirunSchemas["CodeRunnerChunk"]>> {
+	signal?: AbortSignal,
+) {
+	const abortController = new AbortController();
+	signal?.addEventListener("abort", () => {
+		abortController.abort();
+	});
+
 	const res = await apiClient.POST("/code/run", {
 		body: input,
 		parseAs: "stream",
+		signal: abortController.signal,
 	});
 	if (!res.response.ok || !res.data) {
 		const error = await res.response.text();
@@ -30,18 +35,5 @@ async function runCodeSnippet(
 		);
 	}
 
-	return res.data
-		.pipeThrough(new TextDecoderStream())
-		.pipeThrough(new EventSourceParserStream())
-		.pipeThrough(
-			new TransformStream({
-				transform(chunk, controller) {
-					try {
-						controller.enqueue(JSON.parse(chunk.data));
-					} catch (error) {
-						console.error("Error parsing stream chunk:", { chunk, error });
-					}
-				},
-			}),
-		);
+	return new Response(res.data);
 }

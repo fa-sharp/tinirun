@@ -1,5 +1,9 @@
 import type { TinirunSchemas } from "@tinirun/client";
 import {
+	type EventSourceMessage,
+	EventSourceParserStream,
+} from "eventsource-parser/stream";
+import {
 	ChevronDown,
 	ChevronUp,
 	Loader2,
@@ -160,7 +164,8 @@ export function CodeRunner() {
 	const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
 	const [hasRun, setHasRun] = useState(false);
 	const outputRef = useRef<HTMLDivElement>(null);
-	const readerRef = useRef<AsyncGenerator<Chunk> | null>(null);
+	const readerRef =
+		useRef<ReadableStreamDefaultReader<EventSourceMessage> | null>(null);
 
 	const handleLanguageChange = useCallback((lang: Language) => {
 		setLanguage(lang);
@@ -193,7 +198,9 @@ export function CodeRunner() {
 
 	const handleRun = async () => {
 		if (isRunning) {
+			await readerRef.current?.cancel();
 			readerRef.current = null;
+			setIsRunning(false);
 			return;
 		}
 
@@ -207,7 +214,7 @@ export function CodeRunner() {
 		setOutputLines([]);
 
 		try {
-			const reader = await runCodeSnippetServerFn({
+			const res = await runCodeSnippetServerFn({
 				data: {
 					code,
 					lang: language,
@@ -217,10 +224,20 @@ export function CodeRunner() {
 					cpu_limit: 0.5,
 				},
 			});
+			if (!res.body) throw new Error("No response body");
+			const reader = res.body
+				.pipeThrough(new TextDecoderStream())
+				.pipeThrough(new EventSourceParserStream())
+				.getReader();
 			readerRef.current = reader;
 
-			for await (const chunk of reader) {
-				setOutputLines((prev) => [...prev, { id: nextId++, chunk }]);
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				setOutputLines((prev) => [
+					...prev,
+					{ id: nextId++, chunk: JSON.parse(value.data) },
+				]);
 			}
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
