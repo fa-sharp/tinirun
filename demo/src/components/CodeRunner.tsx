@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { runCodeSnippetServerFn } from "@/api/runCode";
+import CodeEditor from "./CodeEditor";
 
 type Language = TinirunSchemas["CodeRunnerLanguage"];
 type Chunk = TinirunSchemas["CodeRunnerChunk"];
@@ -40,7 +41,7 @@ for i in range(1, 6):
 	javascript: `console.log("Hello from tinirun!");
 
 for (let i = 1; i <= 5; i++) {
-  console.log(\`  Count: \${i}\`);
+    console.log(\`  Count: \${i}\`);
 }
 `,
 	typescript: `const message: string = "Hello from tinirun!";
@@ -48,7 +49,7 @@ console.log(message);
 
 const counts: number[] = [1, 2, 3, 4, 5];
 for (const n of counts) {
-  console.log(\`  Count: \${n}\`);
+    console.log(\`  Count: \${n}\`);
 }
 `,
 	go: `package main
@@ -72,7 +73,7 @@ func main() {
 	bash: `echo "Hello from tinirun!"
 
 for i in 1 2 3 4 5; do
-  echo "  Count: $i"
+    echo "  Count: $i"
 done
 `,
 };
@@ -173,28 +174,12 @@ export function CodeRunner() {
 		setDependencies("");
 	}, []);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count change only
 	useEffect(() => {
 		const el = outputRef.current;
-		if (el) {
+		if (el && outputLines.length > 0) {
 			el.scrollTop = el.scrollHeight;
 		}
 	}, [outputLines.length]);
-
-	const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-		if (e.key === "Tab") {
-			e.preventDefault();
-			const el = e.currentTarget;
-			const start = el.selectionStart;
-			const end = el.selectionEnd;
-			const tab = "  ";
-			const next = code.substring(0, start) + tab + code.substring(end);
-			setCode(next);
-			requestAnimationFrame(() => {
-				el.selectionStart = el.selectionEnd = start + tab.length;
-			});
-		}
-	};
 
 	const handleRun = async () => {
 		if (isRunning) {
@@ -219,7 +204,7 @@ export function CodeRunner() {
 					code,
 					lang: language,
 					dependencies: deps.length > 0 ? deps : undefined,
-					timeout: 60,
+					timeout: 5,
 					mem_limit_mb: 256,
 					cpu_limit: 0.5,
 				},
@@ -306,14 +291,12 @@ export function CodeRunner() {
 						</span>
 					</div>
 
-					{/* Code textarea */}
-					<textarea
+					{/* Code editor */}
+					<CodeEditor
 						value={code}
-						onChange={(e) => setCode(e.target.value)}
-						onKeyDown={handleEditorKeyDown}
-						spellCheck={false}
+						onChange={setCode}
+						language={language}
 						className="flex-1 resize-none bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed p-4 outline-none placeholder-zinc-700 min-h-0"
-						placeholder="Write your code here..."
 					/>
 
 					{/* Dependencies section */}
