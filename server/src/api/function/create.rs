@@ -4,6 +4,7 @@ use futures::Stream;
 use tinirun_models::{CodeRunnerChunk, CreateFunctionInput};
 
 use crate::{
+    api::ApiTag,
     errors::AppError,
     input::{AppJson, StreamType},
     redis::{FunctionDetail, FunctionStatus},
@@ -14,6 +15,7 @@ use crate::{
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
         op.id("create_function")
+            .tag(ApiTag::Functions.into())
             .summary("Create function")
             .description("Create a new function")
     })

@@ -151,11 +151,14 @@ impl DockerRunner {
             // Build the function and update its status
             let executor = FunctionExecutor::new(client);
             let status = match executor
-                .build_fn(&name, info, lang_data, dockerfile, main_code, tx)
+                .build_fn(&name, info, lang_data, dockerfile, main_code, tx.clone())
                 .await
             {
                 Ok((tag, id)) => FunctionStatus::Ready { tag, id },
-                Err(err) => FunctionStatus::Error(err),
+                Err(err) => {
+                    log::send_error(&tx, err.clone()).await;
+                    FunctionStatus::Error(err)
+                }
             };
             if let Err(err) = redis.set_fn_status(&name, status).await {
                 tracing::error!("Failed to set status of '{name}' function in Redis: {err}");

@@ -3,7 +3,7 @@ use axum::extract::{Path, State};
 use tinirun_models::{CodeRunnerChunk, RunFunctionInput};
 
 use crate::{
-    api::function::FunctionNamePath,
+    api::{ApiTag, function::FunctionNamePath},
     errors::AppError,
     input::{AppJson, StreamType},
     redis::FunctionStatus,
@@ -14,6 +14,7 @@ use crate::{
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
         op.id("run_function_stream")
+            .tag(ApiTag::Functions.into())
             .summary("Run function")
             .description("Run a saved function with the given inputs and stream the output")
     })

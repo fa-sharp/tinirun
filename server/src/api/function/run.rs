@@ -9,13 +9,17 @@ use serde::Serialize;
 use tinirun_models::{CodeRunnerChunk, RunFunctionInput};
 
 use crate::{
-    api::function::FunctionNamePath, errors::AppError, input::AppJson, redis::FunctionStatus,
+    api::{ApiTag, function::FunctionNamePath},
+    errors::AppError,
+    input::AppJson,
+    redis::FunctionStatus,
     state::AppState,
 };
 
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
         op.id("run_function")
+            .tag(ApiTag::Functions.into())
             .summary("Run function")
             .description("Run a saved function with the given inputs")
     })

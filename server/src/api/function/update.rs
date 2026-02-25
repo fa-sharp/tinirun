@@ -4,7 +4,7 @@ use futures::Stream;
 use tinirun_models::{CodeRunnerChunk, UpdateFunctionInput};
 
 use crate::{
-    api::function::FunctionNamePath,
+    api::{ApiTag, function::FunctionNamePath},
     errors::AppError,
     input::{AppJson, StreamType},
     responses::StreamResponse,
@@ -15,6 +15,7 @@ use crate::{
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::post_with(handler, |op| {
         op.id("update_function")
+            .tag(ApiTag::Functions.into())
             .summary("Update function")
             .description("Modify a saved function")
     })

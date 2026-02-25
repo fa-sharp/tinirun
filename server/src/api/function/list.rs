@@ -3,11 +3,12 @@ use axum::{Json, extract::State};
 use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::{errors::AppError, redis::FunctionInfo, state::AppState};
+use crate::{api::ApiTag, errors::AppError, redis::FunctionInfo, state::AppState};
 
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::get_with(handler, |op| {
         op.id("list_functions")
+            .tag(ApiTag::Functions.into())
             .summary("List functions")
             .description("List each function's info and status")
     })

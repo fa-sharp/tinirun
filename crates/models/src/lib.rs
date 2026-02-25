@@ -175,7 +175,7 @@ pub struct CodeRunnerFunctionResult {
 }
 
 #[derive(Debug, Clone, thiserror::Error, Serialize, Deserialize, JsonSchema)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "error", rename_all = "snake_case")]
 pub enum CodeRunnerError {
     /// The image build failed
     #[error("Failed to build image: {message}")]

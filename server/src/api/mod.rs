@@ -1,4 +1,5 @@
 use axum_app_wrapper::AdHocPlugin;
+use strum::{Display, EnumIter, EnumMessage, IntoEnumIterator, IntoStaticStr};
 
 use crate::{
     auth::{API_KEY_HEADER, ApiKey},
@@ -7,6 +8,15 @@ use crate::{
 
 pub mod function;
 pub mod run_code;
+
+/// Tags in the OpenAPI specification
+#[derive(Debug, IntoStaticStr, Display, EnumMessage, EnumIter)]
+enum ApiTag {
+    #[strum(message = "Run code")]
+    Run,
+    #[strum(message = "Run and manage functions")]
+    Functions,
+}
 
 /// Adds all API routes to the server under `/api`
 pub fn plugin() -> AdHocPlugin<AppState> {
@@ -44,6 +54,13 @@ pub fn plugin() -> AdHocPlugin<AppState> {
                 ..Default::default()
             }),
             security: vec![[("ApiKey".to_owned(), vec!["ApiKey".to_owned()])].into()],
+            tags: ApiTag::iter()
+                .map(|tag| aide::openapi::Tag {
+                    name: tag.to_string(),
+                    description: tag.get_message().map(str::to_owned),
+                    ..Default::default()
+                })
+                .collect(),
             ..Default::default()
         };
 

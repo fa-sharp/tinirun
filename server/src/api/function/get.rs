@@ -5,12 +5,16 @@ use axum::{
 };
 
 use crate::{
-    api::function::FunctionNamePath, errors::AppError, redis::FunctionInfo, state::AppState,
+    api::{ApiTag, function::FunctionNamePath},
+    errors::AppError,
+    redis::FunctionInfo,
+    state::AppState,
 };
 
 pub fn route() -> ApiMethodRouter<AppState> {
     aide::axum::routing::get_with(handler, |op| {
         op.id("get_function")
+            .tag(ApiTag::Functions.into())
             .summary("Get function info")
             .description("Get function info and status")
     })
