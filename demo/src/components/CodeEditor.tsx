@@ -47,7 +47,7 @@ async function getExtension(language: TinirunSchemas["CodeRunnerLanguage"]) {
 		case "javascript":
 		case "typescript":
 			return await import("@codemirror/lang-javascript").then((mod) =>
-				mod.javascript({ typescript: true }),
+				mod.javascript({ typescript: language === "typescript" }),
 			);
 		case "python":
 			return await import("@codemirror/lang-python").then((mod) =>

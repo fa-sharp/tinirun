@@ -11,9 +11,16 @@ import {
 	Play,
 	Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+	Suspense,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { runCodeSnippetServerFn } from "@/api/runCode";
-import CodeEditor from "./CodeEditor";
+
+const CodeEditor = React.lazy(() => import("./CodeEditor"));
 
 type Language = TinirunSchemas["CodeRunnerLanguage"];
 type Chunk = TinirunSchemas["CodeRunnerChunk"];
@@ -204,7 +211,7 @@ export function CodeRunner() {
 					code,
 					lang: language,
 					dependencies: deps.length > 0 ? deps : undefined,
-					timeout: 5,
+					timeout: 60,
 					mem_limit_mb: 256,
 					cpu_limit: 0.5,
 				},
@@ -292,12 +299,18 @@ export function CodeRunner() {
 					</div>
 
 					{/* Code editor */}
-					<CodeEditor
-						value={code}
-						onChange={setCode}
-						language={language}
-						className="flex-1 resize-none bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed p-4 outline-none placeholder-zinc-700 min-h-0"
-					/>
+					<Suspense
+						fallback={
+							<div className="flex-1 m-4 animate-pulse">Loading editor...</div>
+						}
+					>
+						<CodeEditor
+							value={code}
+							onChange={setCode}
+							language={language}
+							className="flex-1 overflow-auto resize-none bg-zinc-950 text-zinc-100 font-mono text-sm leading-relaxed p-4 outline-none placeholder-zinc-700 min-h-0"
+						/>
+					</Suspense>
 
 					{/* Dependencies section */}
 					<div className="shrink-0 border-t border-zinc-800 bg-zinc-900">
