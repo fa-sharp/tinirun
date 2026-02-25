@@ -12,6 +12,7 @@ const config = defineConfig({
 			"@": fileURLToPath(new URL("./src", import.meta.url)),
 		},
 	},
+	envPrefix: ["VITE_", "DEMO_"],
 	plugins: [
 		devtools(),
 		// this is the plugin that enables path aliases
