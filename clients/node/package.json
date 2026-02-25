@@ -1,0 +1,17 @@
+{
+  "name": "@tinirun/client",
+  "description": "Node / JS client for the Tinirun API",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "generate": "pnpx openapi-typescript http://localhost:8082/api/openapi.json -o types.d.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  }
+}
