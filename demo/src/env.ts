@@ -10,6 +10,7 @@ export const env = createEnv({
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
 	},
-	runtimeEnv: import.meta.env,
+	runtimeEnv:
+		import.meta.env.MODE === "production" ? process.env : import.meta.env,
 	emptyStringAsUndefined: true,
 });
