@@ -11,7 +11,7 @@ use crate::{
     errors::AppError,
     redis::{FunctionDetail, FunctionInfo, FunctionStatus, RedisClient},
     runner::{
-        constants::SET_USER_AND_HOME_DIR,
+        constants::{SET_USER_AND_HOME_DIR, UID_GID},
         executor::DockerExecutor,
         functions::FunctionExecutor,
         structs::{LanguageData, LanguageTemplates},
@@ -77,6 +77,7 @@ impl DockerRunner {
             "main_file": lang_data.main_filename,
             "files": input.files,
             "dependencies": input.dependencies.as_ref().map(|deps| deps.join(" ")),
+            "uid_gid": &UID_GID,
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });
         let dockerfile = templates
@@ -125,6 +126,7 @@ impl DockerRunner {
             "fn_file": lang_data.fn_filename,
             "files": None::<Vec<String>>,
             "dependencies": info.dependencies,
+            "uid_gid": &UID_GID,
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });
         let dockerfile = templates

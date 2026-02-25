@@ -3,7 +3,7 @@ FROM {{ image }}
 ENV PNPM_HOME="/opt/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
-RUN mkdir -p /opt/pnpm && chown 1000:1000 /opt/pnpm
+RUN mkdir -p /opt/pnpm && chown {{ uid_gid }} /opt/pnpm
 RUN npm install -g pnpm@9
 
 {{ set_user_and_home_dir }}
@@ -11,12 +11,12 @@ RUN npm install -g pnpm@9
 RUN pnpm init
 RUN pnpm install tsx {{ dependencies }}
 
-COPY --chown=1000:1000 {{ main_file }} .
+COPY --chown={{ uid_gid }} {{ main_file }} .
 {% if fn_file %}
-COPY --chown=1000:1000 {{ fn_file }} .
+COPY --chown={{ uid_gid }} {{ fn_file }} .
 {% endif %}
 {% for file in files %}
-COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
+COPY --chown={{ uid_gid }} {{ file.path }} ./files/{{ file.path }}
 {% endfor %}
 
 CMD ["pnpm", "tsx", "{{ main_file }}"]

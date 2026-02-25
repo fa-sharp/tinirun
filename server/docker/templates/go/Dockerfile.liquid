@@ -1,8 +1,8 @@
 FROM {{ image }}
 
 ENV GOTMPDIR=/opt/gotmpdir GOCACHE=/opt/gocache
-RUN mkdir -p /opt/gotmpdir && chown 1000:1000 /opt/gotmpdir
-RUN mkdir -p /opt/gocache && chown 1000:1000 /opt/gocache
+RUN mkdir -p /opt/gotmpdir && chown {{ uid_gid }} /opt/gotmpdir
+RUN mkdir -p /opt/gocache && chown {{ uid_gid }} /opt/gocache
 
 {{ set_user_and_home_dir }}
 
@@ -11,12 +11,12 @@ RUN go mod init temp
 RUN go get {{ dependencies }}
 {% endif %}
 
-COPY --chown=1000:1000 {{ main_file }} .
+COPY --chown={{ uid_gid }} {{ main_file }} .
 {% if fn_file %}
-COPY --chown=1000:1000 {{ fn_file }} .
+COPY --chown={{ uid_gid }} {{ fn_file }} .
 {% endif %}
 {% for file in files %}
-COPY --chown=1000:1000 {{ file.path }} ./files/{{ file.path }}
+COPY --chown={{ uid_gid }} {{ file.path }} ./files/{{ file.path }}
 {% endfor %}
 
 RUN go build
