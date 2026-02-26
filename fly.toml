@@ -1,0 +1,39 @@
+app = "rs-chat-tinirun"
+primary_region = "ewr"
+
+[build]
+dockerfile = "./Dockerfile"
+
+[env]
+RUNNER_LOG_LEVEL = "info"
+RUNNER_HOST = "0.0.0.0"
+RUNNER_PORT = "8080"
+DOCKER_CERT_PATH = "/certs"
+DOCKER_TLS_VERIFY = "1"
+
+[[files]]
+guest_path = "/certs/ca.pem"
+secret_name = "DOCKER_CA_CERT"
+
+[[files]]
+guest_path = "/certs/cert.pem"
+secret_name = "DOCKER_CLIENT_CERT"
+
+[[files]]
+guest_path = "/certs/key.pem"
+secret_name = "DOCKER_CLIENT_KEY"
+
+[[services]]
+auto_start_machines = true
+auto_stop_machines = "stop"
+internal_port = 8080
+min_machines_running = 0
+protocol = "tcp"
+
+[[services.ports]]
+port = 8080
+
+[[vm]]
+memory = "512mb"
+cpus = 1
+memory_mb = 512

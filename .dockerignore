@@ -1,0 +1,37 @@
+# flyctl launch added from .gitignore
+target
+**/.env*
+
+**/node_modules
+
+**/.DS_Store
+
+# Added by goreleaser init:
+**/dist
+**/.intentionally-empty-file.o
+
+# flyctl launch added from demo/.gitignore
+demo/**/node_modules
+demo/**/.DS_Store
+
+demo/**/.env
+!demo/**/.env.example
+
+demo/**/dist
+demo/**/dist-ssr
+demo/**/*.local
+demo/**/count.txt
+
+demo/**/.nitro
+demo/**/.tanstack
+demo/**/.wrangler
+demo/**/.output
+demo/**/.vinxi
+demo/**/todos.json
+
+# flyctl launch added from server/.gitignore
+server/target
+server/**/.env*
+!server/**/.env.example
+!server/**/.env.liquid
+fly.toml
