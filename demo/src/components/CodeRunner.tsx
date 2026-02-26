@@ -217,6 +217,7 @@ export function CodeRunner() {
 				},
 			});
 			if (!res.body) throw new Error("No response body");
+			if (!res.ok) throw new Error(await res.text());
 			const reader = res.body
 				.pipeThrough(new TextDecoderStream())
 				.pipeThrough(new EventSourceParserStream())

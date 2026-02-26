@@ -22,6 +22,8 @@ impl InputValidationError {
 
 impl IntoResponse for InputValidationError {
     fn into_response(self) -> axum::response::Response {
-        axum::Json(self).into_response()
+        let mut res = axum::Json(self).into_response();
+        *res.status_mut() = axum::http::StatusCode::BAD_REQUEST;
+        res
     }
 }

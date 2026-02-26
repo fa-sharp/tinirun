@@ -86,7 +86,7 @@ fn validate_path(path: &PathBuf) -> Result<(), ValidationError> {
     {
         Err(ValidationError::new("invalid_path")
             .with_message("file path must not have '.' or '..'".into()))
-    } else if path == &Path::new("Dockerfile") || path == &Path::new("./Dockerfile") {
+    } else if path == &Path::new("Dockerfile") {
         Err(ValidationError::new("dockerfile").with_message("cannot provide Dockerfile".into()))
     } else {
         Ok(())

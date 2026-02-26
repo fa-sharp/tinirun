@@ -11,7 +11,7 @@ use crate::{
     errors::AppError,
     redis::{FunctionDetail, FunctionInfo, FunctionStatus, RedisClient},
     runner::{
-        constants::{SET_USER_AND_HOME_DIR, UID_GID},
+        constants::{SET_BUILD_ID, SET_USER_AND_HOME_DIR, UID_GID},
         executor::DockerExecutor,
         functions::FunctionExecutor,
         helpers::log,
@@ -76,9 +76,9 @@ impl DockerRunner {
         let dockerfile_vars = liquid::object!({
             "image": lang_data.image,
             "main_file": lang_data.main_filename,
-            "files": input.files,
             "dependencies": input.dependencies.as_ref().map(|deps| deps.join(" ")),
             "uid_gid": &UID_GID,
+            "set_build_id": &SET_BUILD_ID,
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });
         let dockerfile = templates
@@ -128,9 +128,9 @@ impl DockerRunner {
             "image": lang_data.image,
             "main_file": lang_data.main_filename,
             "fn_file": lang_data.fn_filename,
-            "files": None::<Vec<String>>,
             "dependencies": info.dependencies,
             "uid_gid": &UID_GID,
+            "set_build_id": &SET_BUILD_ID,
             "set_user_and_home_dir": &SET_USER_AND_HOME_DIR,
         });
         let dockerfile = templates
@@ -189,7 +189,7 @@ impl DockerRunner {
 
             tracing::info!("Running function '{name}' with run ID '{run_id}'");
             tokio::select! {
-                res = executor.run_function(&run_id, &name, fn_info, input, lang_data, tx.clone()) => {
+                res = executor.run_function(&run_id, &name, input, lang_data, tx.clone()) => {
                     if let Err(err) = res {
                         log::send_error(&tx, err).await;
                     }

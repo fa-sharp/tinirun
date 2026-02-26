@@ -1,6 +1,9 @@
 //! Executor for running code in Docker containers
 
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use bollard::{
     Docker,
@@ -11,7 +14,7 @@ use tinirun_models::{CodeRunnerChunk, CodeRunnerError};
 use tokio::sync::mpsc;
 
 use crate::runner::{
-    constants::{APP_LABEL, EXEC_LABEL},
+    constants::{APP_LABEL, BUILD_ID_ARG, EXEC_LABEL},
     helpers::{self, log},
 };
 
@@ -62,7 +65,7 @@ impl DockerExecutor {
         let attached_files = files
             .unwrap_or_default()
             .into_iter()
-            .map(|file| (file.path, file.content));
+            .map(|file| (Path::new("files").join(file.path), file.content));
         let all_files: Vec<_> = code_files.into_iter().chain(attached_files).collect();
         let mut build_ctx_message = String::from("Creating build context:");
         for (path, _) in all_files.iter() {
@@ -80,6 +83,7 @@ impl DockerExecutor {
         let build_stream = self.client.build_image(
             BuildImageOptionsBuilder::new()
                 .t(&run_id)
+                .buildargs(&[(BUILD_ID_ARG, run_id)].into())
                 .labels(&image_labels.into())
                 .build(),
             None,

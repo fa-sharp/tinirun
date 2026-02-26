@@ -10,13 +10,13 @@ RUN cargo add {{ dependencies }}
 
 RUN cargo build
 
-COPY --chown={{ uid_gid }} {{ main_file }} src/
+{{ set_build_id }}
+
+COPY --chown={{ uid_gid }} . .
+RUN mv {{ main_file }} src/{{ main_file }}
 {% if fn_file %}
-COPY --chown={{ uid_gid }} {{ fn_file }} src/
+RUN mv {{ fn_file }} src/{{ fn_file }}
 {% endif %}
-{% for file in files %}
-COPY --chown={{ uid_gid }} {{ file.path }} ./files/{{ file.path }}
-{% endfor %}
 
 RUN touch src/{{ main_file }}
 RUN cargo build

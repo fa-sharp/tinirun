@@ -4,7 +4,7 @@ ENV PNPM_HOME="/opt/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
 RUN mkdir -p /opt/pnpm && chown {{ uid_gid }} /opt/pnpm
-RUN npm install -g pnpm@9
+RUN npm install -g --quiet pnpm@9
 
 {{ set_user_and_home_dir }}
 
@@ -14,12 +14,8 @@ RUN pnpm pkg set type="module"
 RUN pnpm install {{ dependencies }}
 {% endif %}
 
-COPY --chown={{ uid_gid }} {{ main_file }} .
-{% if fn_file %}
-COPY --chown={{ uid_gid }} {{ fn_file }} .
-{% endif %}
-{% for file in files %}
-COPY --chown={{ uid_gid }} {{ file.path }} ./files/{{ file.path }}
-{% endfor %}
+{{ set_build_id }}
+
+COPY --chown={{ uid_gid }} . .
 
 CMD ["node", "{{ main_file }}"]

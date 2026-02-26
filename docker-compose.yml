@@ -1,5 +1,5 @@
 services:
-  valkey:
+  redis:
     image: valkey/valkey:8
     container_name: valkey
     ports:
@@ -13,10 +13,12 @@ services:
       context: .
     ports:
       - "8080:8080"
+    depends_on:
+      - redis
     user: "${RUNNER_UID-10001}:${RUNNER_GID-1000}"
     privileged: true
     environment:
-      - RUNNER_REDIS_URL=redis://valkey:6379
+      - RUNNER_REDIS_URL=redis://redis:6379
       - RUNNER_API_KEY=api-key-123
       - RUNNER_LOG_LEVEL=info
     volumes:
@@ -28,6 +30,8 @@ services:
       dockerfile: demo/Dockerfile
     ports:
       - "3000:3000"
+    depends_on:
+      - tinirun
     environment:
       - DEMO_TINIRUN_URL=http://tinirun:8080/api
       - DEMO_TINIRUN_API_KEY=api-key-123

@@ -9,17 +9,11 @@ import { apiClient } from ".";
  */
 export const runCodeSnippetServerFn = createServerFn({ method: "POST" })
 	.inputValidator((input: TinirunSchemas["CodeRunnerInput"]) => input)
-	.handler(async (ctx) => {
-		const request = getRequest();
-		return await runCodeSnippet(ctx.data, request.signal);
-	});
+	.handler((ctx) => runCodeSnippet(ctx.data));
 
-async function runCodeSnippet(
-	input: TinirunSchemas["CodeRunnerInput"],
-	signal?: AbortSignal,
-) {
+async function runCodeSnippet(input: TinirunSchemas["CodeRunnerInput"]) {
 	const abortController = new AbortController();
-	signal?.addEventListener("abort", () => {
+	getRequest().signal?.addEventListener("abort", () => {
 		abortController.abort();
 	});
 
@@ -27,11 +21,11 @@ async function runCodeSnippet(
 		body: input,
 		parseAs: "stream",
 		signal: abortController.signal,
+		fetch,
 	});
-	if (!res.response.ok || !res.data) {
-		const error = await res.response.text();
+	if (!res.response.ok) {
 		throw new Error(
-			`Failed to run code snippet: ${res.response.status} - ${error}`,
+			`Failed to run code snippet: ${res.response.status} - ${res.error ?? "unknown error"}`,
 		);
 	}
 

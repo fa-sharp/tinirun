@@ -11,13 +11,9 @@ RUN go mod init temp
 RUN go get {{ dependencies }}
 {% endif %}
 
-COPY --chown={{ uid_gid }} {{ main_file }} .
-{% if fn_file %}
-COPY --chown={{ uid_gid }} {{ fn_file }} .
-{% endif %}
-{% for file in files %}
-COPY --chown={{ uid_gid }} {{ file.path }} ./files/{{ file.path }}
-{% endfor %}
+{{ set_build_id }}
+
+COPY --chown={{ uid_gid }} . .
 
 RUN go build
 

@@ -18,3 +18,11 @@ USER 1000:1000
 RUN mkdir -p /tmp/home
 WORKDIR /app
 "#;
+/// Name of the build argument for the unique build ID
+pub const BUILD_ID_ARG: &str = "TINIRUN_BUILD_ID";
+/// Common Dockerfile instructions to set the unique build ID argument and environment variable.
+/// This also ensures that the build cache is invalidated for subsequent steps.
+pub const SET_BUILD_ID: &str = r#"
+ARG TINIRUN_BUILD_ID
+ENV TINIRUN_BUILD_ID=$TINIRUN_BUILD_ID
+"#;

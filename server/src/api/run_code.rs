@@ -4,6 +4,7 @@ use tinirun_models::{CodeRunnerChunk, CodeRunnerInput};
 
 use crate::{
     api::ApiTag,
+    errors::AppError,
     input::{AppJson, StreamType},
     responses::StreamResponse,
     state::AppState,
@@ -22,12 +23,8 @@ async fn handler(
     State(state): State<AppState>,
     stream_type: StreamType,
     AppJson(input): AppJson<CodeRunnerInput>,
-) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>>, String> {
-    let stream = state
-        .runner
-        .execute(input)
-        .await
-        .map_err(|err| err.to_string())?;
+) -> Result<StreamResponse<impl Stream<Item = CodeRunnerChunk>>, AppError> {
+    let stream = state.runner.execute(input).await?;
 
     Ok(StreamResponse::new(stream, stream_type))
 }

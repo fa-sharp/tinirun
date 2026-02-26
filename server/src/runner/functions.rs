@@ -11,9 +11,9 @@ use tinirun_models::{
 use tokio::{io::AsyncWriteExt, sync::mpsc};
 
 use crate::{
-    redis::{FunctionDetail, FunctionInfo},
+    redis::FunctionDetail,
     runner::{
-        constants::{APP_LABEL, FN_LABEL},
+        constants::{APP_LABEL, BUILD_ID_ARG, FN_LABEL},
         helpers::{self, log},
         structs::LanguageData,
     },
@@ -29,8 +29,8 @@ impl FunctionExecutor {
     }
 
     /// The tag of the function's Docker image
-    fn fn_tag(name: &str, version: u32) -> String {
-        format!("code-runner-fn-{name}-v{version}")
+    fn fn_tag(name: &str) -> String {
+        format!("code-runner-fn-{name}:latest")
     }
 
     /// Build the function's Docker image. Returns the image tag and ID on success.
@@ -43,7 +43,7 @@ impl FunctionExecutor {
         main_code: String,
         tx: mpsc::Sender<CodeRunnerChunk>,
     ) -> Result<(String, String), CodeRunnerError> {
-        let image_tag = Self::fn_tag(&fn_name, fn_info.version);
+        let image_tag = Self::fn_tag(&fn_name);
         let LanguageData {
             image: base_image,
             main_filename,
@@ -81,6 +81,7 @@ impl FunctionExecutor {
         let build_stream = self.client.build_image(
             BuildImageOptionsBuilder::new()
                 .t(&image_tag)
+                .buildargs(&[(BUILD_ID_ARG, &format!("{fn_name}-v{}", fn_info.version))].into())
                 .labels(&image_labels.into())
                 .build(),
             None,
@@ -103,7 +104,6 @@ impl FunctionExecutor {
         &self,
         run_id: &str,
         fn_name: &str,
-        fn_info: FunctionInfo,
         input: RunFunctionInput,
         lang_data: LanguageData,
         tx: mpsc::Sender<CodeRunnerChunk>,
@@ -116,7 +116,7 @@ impl FunctionExecutor {
             cpu_limit,
         } = input;
         let LanguageData { command, .. } = lang_data;
-        let image_tag = Self::fn_tag(fn_name, fn_info.version);
+        let image_tag = Self::fn_tag(fn_name);
 
         // Ensure function image exists
         if !helpers::exists_image(&self.client, &image_tag).await? {

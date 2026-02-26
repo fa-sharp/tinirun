@@ -3,11 +3,12 @@ use std::time::Duration;
 use bollard::{
     Docker,
     query_parameters::{
-        PruneContainersOptionsBuilder, PruneImagesOptionsBuilder, RemoveContainerOptionsBuilder,
+        ListImagesOptionsBuilder, PruneContainersOptionsBuilder, PruneImagesOptionsBuilder,
+        RemoveContainerOptionsBuilder, RemoveImageOptions,
     },
 };
 
-use crate::runner::constants::{APP_LABEL, EXEC_LABEL};
+use crate::runner::constants::{APP_LABEL, EXEC_LABEL, FN_LABEL};
 
 /// Cleanup Docker resources associated with a code execution run.
 pub async fn run_cleanup(docker: &Docker, run_id: &str) {
@@ -46,25 +47,50 @@ pub async fn image_cleanup_task(docker: Docker, period: Duration) {
             Err(err) => tracing::warn!("Failed to prune containers: {err}"),
         }
 
+        // Keep track of number of images pruned
+        let mut num_pruned = 0;
+
         // Prune one-off code execution images
-        let image_filters = [
+        let prune_filters = [
             ("label", vec![EXEC_LABEL]),
             ("until", vec![&until]),
             ("dangling", vec!["false"]),
         ];
         let prune_image_opt = PruneImagesOptionsBuilder::new()
-            .filters(&image_filters.into())
+            .filters(&prune_filters.into())
             .build();
         match docker.prune_images(Some(prune_image_opt)).await {
             Ok(res) => {
-                if let Some(images) = res.images_deleted
-                    && images.len() > 0
-                {
-                    let mb = res.space_reclaimed.unwrap_or_default() as f32 / 1024.0 / 1024.0;
-                    tracing::info!("Pruned {} images, saved {mb:.2} MB", images.len());
+                if let Some(images) = res.images_deleted {
+                    num_pruned += images.len();
                 }
             }
-            Err(err) => tracing::warn!("Failed to prune images: {err}"),
+            Err(err) => tracing::warn!("Failed to prune execution images: {err}"),
+        }
+
+        // Prune old function images (any not tagged as 'latest')
+        let list_image_opt = ListImagesOptionsBuilder::new()
+            .filters(&[("label", vec![FN_LABEL]), ("until", vec![&until])].into())
+            .build();
+        let Ok(fn_images) = docker.list_images(Some(list_image_opt)).await else {
+            tracing::warn!("Failed to list function images");
+            continue;
+        };
+        for old_image in fn_images
+            .into_iter()
+            .filter(|image| image.repo_tags.iter().all(|tag| !tag.ends_with(":latest")))
+        {
+            match docker
+                .remove_image(&old_image.id, None::<RemoveImageOptions>, None)
+                .await
+            {
+                Ok(deleted) => num_pruned += deleted.len(),
+                Err(err) => tracing::warn!("Failed to prune old function image: {err}"),
+            }
+        }
+
+        if num_pruned > 0 {
+            tracing::info!("Pruned {num_pruned} images");
         }
     }
 }
