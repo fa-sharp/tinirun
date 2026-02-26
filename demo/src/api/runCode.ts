@@ -21,7 +21,6 @@ async function runCodeSnippet(input: TinirunSchemas["CodeRunnerInput"]) {
 		body: input,
 		parseAs: "stream",
 		signal: abortController.signal,
-		fetch,
 	});
 	if (!res.response.ok) {
 		throw new Error(
