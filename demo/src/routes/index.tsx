@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CodeRunner } from "@/components/CodeRunner";
+import { CodeRunner } from "@/components/runner/CodeRunner";
 
 export const Route = createFileRoute("/")({
 	component: HomePage,
-	ssr: "data-only",
 });
 
 function HomePage() {
