@@ -28,7 +28,7 @@ pub fn plugin() -> AdHocPlugin<AppState> {
             .ok_or_else(|| anyhow!("app config not found"))?;
 
         // Connect to Docker and initialize client
-        let client = tokio::task::spawn_blocking(Docker::connect_with_local_defaults)
+        let client = tokio::task::spawn_blocking(Docker::connect_with_defaults)
             .await?
             .context("could not connect to Docker")?;
 
