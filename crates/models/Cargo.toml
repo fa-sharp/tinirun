@@ -1,6 +1,6 @@
 [package]
 name = "tinirun-models"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Shared models for the tinirun API"
 

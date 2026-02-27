@@ -2346,7 +2346,7 @@ dependencies = [
 
 [[package]]
 name = "tinirun-client"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "reqwest",
@@ -2362,7 +2362,7 @@ dependencies = [
 
 [[package]]
 name = "tinirun-models"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "bollard",
  "regex",
@@ -2377,7 +2377,7 @@ dependencies = [
 
 [[package]]
 name = "tinirun-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aide",
  "anyhow",
