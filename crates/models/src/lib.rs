@@ -5,15 +5,11 @@ use std::path::{Component, Path, PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_with::{base64::Base64, serde_as};
-use strum::AsRefStr;
 use validator::{Validate, ValidationError};
 
 /// Supported languages for the code runner
-#[derive(
-    Debug, Default, AsRefStr, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema,
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
 pub enum CodeRunnerLanguage {
     Bash,
     Go,
