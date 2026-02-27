@@ -29,6 +29,8 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-zigbuild
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
       - name: Login to ghcr.io
         uses: docker/login-action@v3
         with:
