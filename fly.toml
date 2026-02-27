@@ -2,7 +2,7 @@ app = "rs-chat-tinirun"
 primary_region = "ewr"
 
 [build]
-dockerfile = "./Dockerfile"
+dockerfile = "Dockerfile"
 
 [env]
 RUNNER_LOG_LEVEL = "info"
