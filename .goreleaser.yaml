@@ -15,7 +15,7 @@ builds:
     flags:
       - --release
       - --locked
-      - --package=tinirun-server
+      - --package={{ .ProjectName }}
     targets:
       - x86_64-unknown-linux-gnu
       - x86_64-apple-darwin
@@ -50,12 +50,12 @@ dockers_v2:
       - "{{ .Major }}.{{ .Minor }}"
       - "{{ .Major }}"
     labels:
-      "org.opencontainers.image.description": "A simple code runner service using Rust and Docker"
-      "org.opencontainers.image.created": "{{.Date}}"
       "org.opencontainers.image.name": "{{.ProjectName}}"
-      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.description": "A simple code runner service using Rust and Docker"
       "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
       "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.created": "{{.Date}}"
     platforms:
       - linux/amd64
       - linux/arm64
