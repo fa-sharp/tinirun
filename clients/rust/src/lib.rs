@@ -16,6 +16,7 @@ pub mod models {
 pub struct TinirunClient {
     client: reqwest::Client,
     base_url: String,
+    auth_headers: HeaderMap,
 }
 
 /// Errors returned by the client
@@ -45,15 +46,24 @@ impl TinirunClient {
             .redirect(reqwest::redirect::Policy::limited(2))
             .connect_timeout(Duration::from_secs(10))
             .user_agent(format!("tinirun-client/{}", env!("CARGO_PKG_VERSION")))
-            .default_headers(HeaderMap::from_iter([(
-                HeaderName::from_static("X-Runner-Api-Key"),
-                HeaderValue::from_str(api_key.as_ref()).expect("Invalid API key value"),
-            )]))
             .build()
             .expect("Failed to build client");
 
         TinirunClient {
             client,
+            auth_headers: build_auth_headers(api_key),
+            base_url: base_url.into(),
+        }
+    }
+
+    pub fn with_client(
+        client: impl AsRef<reqwest::Client>,
+        base_url: impl Into<String>,
+        api_key: impl AsRef<str>,
+    ) -> Self {
+        TinirunClient {
+            client: client.as_ref().to_owned(),
+            auth_headers: build_auth_headers(api_key),
             base_url: base_url.into(),
         }
     }
@@ -69,6 +79,7 @@ impl TinirunClient {
         let response = self
             .client
             .post(format!("{}/code/run", self.base_url))
+            .headers(self.auth_headers.clone())
             .header(ACCEPT, "application/jsonl")
             .json(input)
             .send()
@@ -81,6 +92,14 @@ impl TinirunClient {
 
         Ok(response.json_nl_stream::<CodeRunnerChunk>(64 * 1024))
     }
+}
+
+fn build_auth_headers(api_key: impl AsRef<str>) -> HeaderMap {
+    let auth_headers = HeaderMap::from_iter([(
+        HeaderName::from_static("X-Runner-Api-Key"),
+        HeaderValue::from_str(api_key.as_ref()).expect("Invalid API key value"),
+    )]);
+    auth_headers
 }
 
 async fn extract_error_message(response: reqwest::Response) -> Option<String> {
