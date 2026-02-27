@@ -2,7 +2,7 @@ app = "rs-chat-tinirun"
 primary_region = "ewr"
 
 [build]
-image = "ghcr.io/fa-sharp/tinirun"
+image = "ghcr.io/fa-sharp/tinirun:latest"
 
 [env]
 RUNNER_LOG_LEVEL = "info"
