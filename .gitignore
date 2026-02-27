@@ -8,3 +8,6 @@ node_modules/
 # Added by goreleaser init:
 dist/
 .intentionally-empty-file.o
+
+# Zig CI install
+.zig-cache
