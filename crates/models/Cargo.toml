@@ -6,7 +6,7 @@ description = "Shared models for the tinirun API"
 
 [dependencies]
 bollard = { workspace = true, optional = true }
-regex = "1.12.3"
+regex = "1.12"
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

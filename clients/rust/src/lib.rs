@@ -30,9 +30,11 @@ pub enum TinirunError {
 
 impl TinirunClient {
     pub fn new(base_url: impl Into<String>, api_key: impl AsRef<str>) -> Self {
+        #[cfg(feature = "tls")]
         rustls::crypto::ring::default_provider()
             .install_default()
             .expect("Failed to install TLS provider (ring)");
+
         let client = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::limited(2))
             .connect_timeout(Duration::from_secs(10))
