@@ -6,6 +6,11 @@ use reqwest_streams::{JsonStreamResponse, error::StreamBodyError};
 use tinirun_models::{CodeRunnerChunk, CodeRunnerInput};
 use validator::Validate;
 
+/// Models used by the client
+pub mod models {
+    pub use tinirun_models::*;
+}
+
 /// # Tinirun client
 /// A Rust client for the Tinirun API that supports streaming code execution logs and results.
 pub struct TinirunClient {
@@ -13,6 +18,7 @@ pub struct TinirunClient {
     base_url: String,
 }
 
+/// Errors returned by the client
 #[derive(Debug, thiserror::Error)]
 pub enum TinirunError {
     #[error("Reqwest error: {0}")]
