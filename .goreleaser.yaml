@@ -36,6 +36,30 @@ archives:
       - goos: windows
         formats: [zip]
 
+dockers_v2:
+  - id: tinirun
+    dockerfile: Dockerfile
+    images:
+      - ghcr.io/fa-sharp/tinirun
+    build_args:
+      BINNAME: "{{.ProjectName}}"
+    tags:
+      - latest
+      - "v{{ .Version }}"
+      - "{{ .Version }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ .Major }}"
+    labels:
+      "org.opencontainers.image.description": "A simple code runner service using Rust and Docker"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
 changelog:
   sort: asc
   filters:
