@@ -57,12 +57,12 @@ impl TinirunClient {
     }
 
     pub fn with_client(
-        client: impl AsRef<reqwest::Client>,
+        client: reqwest::Client,
         base_url: impl Into<String>,
         api_key: impl AsRef<str>,
     ) -> Self {
         TinirunClient {
-            client: client.as_ref().to_owned(),
+            client,
             auth_headers: build_auth_headers(api_key),
             base_url: base_url.into(),
         }
