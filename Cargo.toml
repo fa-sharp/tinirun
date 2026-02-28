@@ -7,7 +7,11 @@ bollard = { version = "0.20.1", features = ["ssl"] }
 schemars = { version = "1.2", features = ["chrono04", "preserve_order"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-serde_with = { version = "3.16", features = ["base64", "schemars_1"] }
+serde_with = { version = "3.16", default-features = false, features = [
+  "base64",
+  "macros",
+  "schemars_1",
+] }
 strum = { version = "0.27", features = ["derive"] }
 thiserror = "2.0"
 validator = { version = "0.20", features = ["derive"] }
