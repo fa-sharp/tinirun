@@ -96,7 +96,7 @@ impl TinirunClient {
 
 fn build_auth_headers(api_key: impl AsRef<str>) -> HeaderMap {
     let auth_headers = HeaderMap::from_iter([(
-        HeaderName::from_static("X-Runner-Api-Key"),
+        HeaderName::from_static("x-runner-api-key"),
         HeaderValue::from_str(api_key.as_ref()).expect("Invalid API key value"),
     )]);
     auth_headers
