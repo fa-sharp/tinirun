@@ -107,6 +107,8 @@ async fn extract_error_message(response: reqwest::Response) -> Option<String> {
         if let Ok(value) = serde_json::to_value(&response_text) {
             if let Some(message) = value["message"].as_str() {
                 return Some(message.to_owned());
+            } else {
+                return Some(response_text);
             }
         } else {
             return Some(response_text);
