@@ -96,18 +96,3 @@ cd demo && pnpm dev
 ```
 
 Set `DEMO_TINIRUN_URL` and `DEMO_TINIRUN_API_KEY` for the demo to connect to the server.
-
-## Project Structure
-
-```
-server/          # Rust/Axum HTTP server
-  src/
-    api/         # Route handlers (run_code, function CRUD/run)
-    runner/      # Docker execution engine
-    redis/       # Function persistence
-  docker/        # Dockerfile templates and language configs per language
-crates/models/   # Shared Rust types
-clients/node/    # Node.js client
-clients/rust/    # Rust client
-demo/            # React web UI
-```
